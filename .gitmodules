@@ -1,0 +1,3 @@
+[submodule "externals/rdalchemy"]
+	path = externals/rdalchemy
+	url = git@github.com:teaguesterling/rdalchemy.git
