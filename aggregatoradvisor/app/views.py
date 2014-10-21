@@ -7,12 +7,6 @@ from flask import(
     url_for,
 )
 import app
-from config import (
-    AGGREGATORS_DISPLAY_IMAGE_SIZE,
-    AGGREGATORS_DISPLAY_PER_PAGE,
-    AGGREGATORS_DISPLAY_PER_ROW,
-    CITATIONS_DISPLAY_PER_PAGE,
-)
 from models import (
     Aggregator,
     Citation,
