@@ -1,0 +1,9 @@
+wtforms
+sqlalchemy
+rdalchemy
+flask
+flask-admin
+flask-login
+flask-mail
+flask-sqlalchemy
+flask-wtf
