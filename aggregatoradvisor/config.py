@@ -1,5 +1,5 @@
 # Database Configuration
-SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://agad:@localhost/agad'
+SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://agad:agadsecret@localhost/agad'
 
 
 # Administrator Configuration
@@ -15,7 +15,4 @@ SECRET_KEY = 'Shhh! This is a super secret key'
 
 
 # Display Configuration
-AGGREGATORS_DISPLAY_PER_PAGE = 15
-AGGREGATORS_DISPLAY_PER_ROW = 3
 AGGREGATORS_DISPLAY_IMAGE_SIZE = (300,300)
-CITATIONS_DISPLAY_PER_PAGE = 10
