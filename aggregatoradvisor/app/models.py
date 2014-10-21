@@ -111,6 +111,10 @@ class Citation(Model):
     def year(self):
         return self.published.year
 
+    @property
+    def doi_url(self):
+        return u"http://dx.doi.org/{}".format(self.doi)
+
     def __repr__(self):
         return "Citation(id={0!r} doi={1!r} short_reference={2!r})" \
             .format(self.id,

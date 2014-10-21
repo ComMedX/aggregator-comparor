@@ -31,8 +31,8 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/images/<int:agg_id>.<format>')
-def draw(agg_id, format):
+@app.route('/images/<int:agg_id>.<format>', defaults={'format': 'png'})
+def draw(agg_id, format='png'):
     if format not in IMAGE_FORMAT_MIME_TYPES:
         abort(404)
 
@@ -50,7 +50,6 @@ def draw(agg_id, format):
 def browse_aggregators(page_num=1):
     aggregator_rows = get_aggregators_for_view(Aggregator.query, page_num, config=app.config)
     return render_template('browse_aggregators.html',
-                           display_citation=None,
                            aggregator_rows=aggregator_rows)
 
 
@@ -69,7 +68,7 @@ def browse_citation_aggregators(cite_id, page_num=1):
     citation = Citation.query.get_or_404(cite_id)
     aggregator_rows = get_aggregators_for_view(citation.aggregators, page_num, config=app.config)
     return render_template('browse_aggregators.html',
-                           display_citation=citation,
+                           citation=citation,
                            aggregator_rows=aggregator_rows)
 
 
@@ -78,17 +77,9 @@ def browse_citation_aggregators(cite_id, page_num=1):
 
 def get_aggregators_for_view(aggregators, page_num, sorting=Aggregator.id, config=app.config):
     per_page = config.get('AGGREGATORS_DISPLAY_PER_PAGE', 15)
-    per_row = config.get('AGGREGATORS_DISPLAY_PER_ROW', 3)
     ordered = aggregators.order_by(sorting)
     paginated = ordered.paginate(page_num, per_page)
-    in_rows = grouper(per_row, paginated)
-    return in_rows
-    
-
-
-def grouper(n, iterable, padvalue=None):
-    "grouper(3, 'abcdefg', 'x') --> ('a','b','c'), ('d','e','f'), ('g','x','x')"
-    return itertools.izip_longest(*[iter(iterable)]*n, fillvalue=padvalue)
+    return paginated
 
 
 def image_to_buffer(image, format='PNG'):

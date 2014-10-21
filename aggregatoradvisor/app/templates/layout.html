@@ -1,0 +1,26 @@
+<html>
+    <head>
+        {% block head %}
+        <title>{% block title %}{% endblock %} - AggregatorAdvisor</title>
+        {% endblock %}
+    </head>
+    <body>
+        <div id="header">
+            <h1>AggregatorAdvisor</h1>
+            {% if self.title() %}
+            <h2>{{ self.title() }}</h2>
+            {% endif %}
+        </div>
+        <div id="nav">
+
+        </div>
+        <div id="content">
+            {% block content %}{% endblock %}
+        </div>
+        <div id="footer">
+            {% block footer %}
+            &copy; Copyright 2014
+            {% endblock %}
+        </div>
+    </body>
+</html>
