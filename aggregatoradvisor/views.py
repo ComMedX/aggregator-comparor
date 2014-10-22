@@ -1,13 +1,25 @@
 from cStringIO import StringIO
+import operator
+from rdkit.Chem import (
+    MolFromSmiles,
+    MolFromSmarts,
+)
+from rdkit.Chem.inchi import MolFromInchi
 from rdkit.Chem.Draw import MolToImage
+from rdalchemy.rdalchemy import tanimoto_threshold
 from flask import(
     abort,
+    json,
     render_template,
+    request,
     send_file,
     url_for,
 )
-import app
-from models import (
+from aggregatoradvisor import (
+    app,
+    db,
+)
+from aggregatoradvisor.models import (
     Aggregator,
     Citation,
 )
@@ -18,14 +30,20 @@ IMAGE_FORMAT_MIME_TYPES = {
     'gif': 'image/gif',
 }
 
+SEARCH_INPUT_FORMATS = [
+    ('smiles', MolFromSmiles),
+    ('smarts', MolFromSmarts),
+    ('inchi', MolFromInchi),
+]
+
 
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', request=request)
 
-
-@app.route('/images/<int:agg_id>.<format>', defaults={'format': 'png'})
+@app.route('/images/<int:agg_id>.png')
+@app.route('/images/<int:agg_id>.<format>')
 def draw(agg_id, format='png'):
     if format not in IMAGE_FORMAT_MIME_TYPES:
         abort(404)
@@ -39,12 +57,71 @@ def draw(agg_id, format='png'):
     return send_file(image_data, mime_type)
 
 
-@app.route('/aggregators', defaults={'page_num': 1})
-@app.route('/aggregators/<int:page_num>')
+@app.route('/search')
+def search():
+    default_search_cutoff = app.config.get('AGGREGATOR_SEARCH_TANIMOTO_CUTOFF', 0.50)
+    search_cutoff = float(request.args.get('similarity_threshold', default_search_cutoff))
+
+    query_mol, error = extract_query_mol(request.args, SEARCH_INPUT_FORMATS)
+
+    if error is not None:
+        return error, 400
+
+    # Bind input to the same type as aggregator structure
+    query = Aggregator.structure.type.bind_expression(query_mol)
+
+    query_fp = query.bind.rdkit_fp                  # Force server-side fingerprint function
+    query_logp = round(query.logp, 3)
+    aggregator_fps = Aggregator.structure.rdkit_fp  # Get fingerprints 
+    aggregators = Aggregator.query
+    
+    # Construct structural query sorted and limited by similarity with tanimoto scores annotated
+    similar = aggregators.filter(aggregator_fps.similar_to(query_fp))\
+                         .order_by(aggregator_fps.tanimoto_nearest_neighbors(query_fp))\
+                         .add_columns(query_fp.tanimoto(aggregator_fps))
+
+    # Run query with specified tanimoto threshold
+    with tanimoto_threshold(db.engine, search_cutoff):
+        nearest_tc = similar.all()
+
+    # Split out aggregators and Tc scores
+    try:
+        similar_aggregators, aggregator_tcs = zip(*nearest_tc)
+    except ValueError:
+        similar_aggregators, aggregator_tcs = [],[]
+    aggregator_tcs = [round(tc, 2) for tc in aggregator_tcs]
+    max_tc = max(aggregator_tcs + [0])  # Add dummy score in event none found
+    num_similar = len(similar_aggregators)
+
+    if max_tc == 1.0:
+        summary = "aggregator" 
+    if num_similar > 0 and query_logp > 3:
+        summary = "likely"
+    elif num_similar > 0:
+        summary = "maybe"
+    elif query_logp > 3:
+        summary = "maybe"
+    else:
+        summary = "unlikely (but test anyways)"
+
+    report = {
+        'summary': summary,
+        'logp': query_logp,
+        'maxtc': max_tc,
+        'num_similar': num_similar,
+        'similar_smiles': [aggregator.smiles for aggregator in similar_aggregators],
+    }
+
+    return json.jsonify(**report)
+
+
+@app.route('/browse', defaults={'page_num': 1})
+@app.route('/browse/<int:page_num>')
 def browse_aggregators(page_num=1):
-    aggregator_rows = get_aggregators_for_view(Aggregator.query, page_num, config=app.config)
+    aggregators = get_aggregators_for_view(Aggregator.query, page_num, config=app.config)
     return render_template('browse_aggregators.html',
-                           aggregator_rows=aggregator_rows)
+                           request=request,
+                           aggregators=aggregators)
 
 
 @app.route('/sources', defaults={'page_num': 1})
@@ -53,17 +130,20 @@ def browse_citations(page_num=1):
     per_page = app.config.get('CITATIONS_DISPLAY_PER_PAGE', 10)
     ordering = Citation.published
     paginated = Citation.query.order_by(ordering).paginate(page_num, per_page)
-    return render_template('browse_citations.html', citations=paginated)
+    return render_template('browse_citations.html', 
+                           request=request,
+                           citations=paginated)
 
 
-@app.route('/sources/<int:cite_id>', defaults={'page_num': 1})
-@app.route('/sources/<int:cite_id>/<page_num>')
+@app.route('/reference/<int:cite_id>', defaults={'page_num': 1})
+@app.route('/reference/<int:cite_id>/<int:page_num>')
 def browse_citation_aggregators(cite_id, page_num=1):
     citation = Citation.query.get_or_404(cite_id)
-    aggregator_rows = get_aggregators_for_view(citation.aggregators, page_num, config=app.config)
-    return render_template('browse_aggregators.html',
+    aggregators = get_aggregators_for_view(citation.aggregators, page_num, config=app.config)
+    return render_template('browse_citation_aggregators.html',
+                           request=request,
                            citation=citation,
-                           aggregator_rows=aggregator_rows)
+                           aggregators=aggregators)
 
 
 # Helper functions below
@@ -81,3 +161,24 @@ def image_to_buffer(image, format='PNG'):
     image.save(buf, format.upper())
     buf.seek(0)
     return buf
+
+
+def extract_query_mol(params, formats):
+    mol, error = None, None
+    for input_format, parser in formats:
+        try:
+            query_input = params[input_format]
+            mol = parser(str(query_input))
+            if mol is None:
+                raise ValueError("Failed to parse {}".format(input_format))
+        except KeyError:
+            pass
+        except ValueError as e:
+            error = "Invalid query term (reason: {})".format(str(e))
+            break
+        else:
+            break
+    else:
+        error = "Query parameter missing (expected one of: {}"\
+                    .format(', '.join(fmt for fmt, _ in SEARCH_INPUT_FORMATS))
+    return mol, error

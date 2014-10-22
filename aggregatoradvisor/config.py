@@ -1,6 +1,7 @@
 # Database Configuration
-SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://agad:agadsecret@localhost/agad'
-
+SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://agad:agad@localhost/agad'
+SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://teague:56545654@localhost/agad'
+SQLALCHEMY_ECHO = True
 
 # Administrator Configuration
 ADMINS = {

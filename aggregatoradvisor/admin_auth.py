@@ -14,6 +14,17 @@ from flask.ext import login
 from config import ADMINS
 
 
+def get_administrator(name):
+    try:
+        username = str(name)
+        admin_def = ADMINS[username]
+        admin = Administrator(username, *admin_def)
+    except KeyError:
+        return None
+    else:
+        return admin
+
+
 class Administrator(login.UserMixin):
     """ Very simple class for staticlly defined administrators """
     def __init__(self, username, password_hash, email = None):
@@ -39,7 +50,7 @@ class AdministratorLoginForm(Form):
     password = PasswordField(validators=[validators.required()])
 
     def validate_login(self, field):
-        user = self.get_user()
+        user = get_administrator(self.username.data)
 
         if user is None:
             raise validators.ValidationError('Invalid user')
@@ -52,39 +63,28 @@ class AdministratorLoginForm(Form):
         # if user.password != self.password.data:
             raise validators.ValidationError('Invalid password')
 
-    def get_user(self):
-        try:
-            username = str(self.username.data)
-            admin_def = ADMINS[username]
-            admin = Administrator(username, *admin_def)
-        except KeyError:
-            return None
-        else:
-            return admin
-
 
 class AuthenticatedAdminIndexView(admin.AdminIndexView):
     @admin.expose('/')
     def index(self):
         if not login.current_user.is_authenticated():
             return redirect(url_for('.login_view'))
-        return super(SimpleAdminIndexView, self).index()
+        return super(AuthenticatedAdminIndexView, self).index()
 
-    @admin.expose('/login', methods=('GET', 'POST'))
     @admin.expose('/login/', methods=('GET', 'POST'))
     def login_view(self):
         # handle user login
         form = AdministratorLoginForm(request.form)
         if admin.helpers.validate_form_on_submit(form):
             user = form.get_user()
-            login.login_user(user)
+            login.login_user(user, remember=True)
 
         if login.current_user.is_authenticated():
             return redirect(url_for('.index'))
         self._template_args['form'] = form
-        return super(SimpleAdminIndexView, self).index()
+        self._template_args['link'] = 'Login'
+        return super(AuthenticatedAdminIndexView, self).index()
 
-    @admin.expose('/logout')
     @admin.expose('/logout/')
     def logout_view(self):
         login.logout_user()

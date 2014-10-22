@@ -1,13 +1,13 @@
 <dev id="aggregators">
     <div class="pagination">
         {% if aggregators.has_prev %}
-            <a href="{{ url_for(current_page, page=aggregators.prev_num) }}">&#8592; {{ aggregators.prev_num }}  </a>
-        {% endif %} |
-        {{ aggregators.page }} |
-        {% if aggregators.has_next %}
-            <a href="{{ url_for(current_page, page=aggregators.next_num) }}">{{ aggregators.next_num }} &#8594;</a>
+            <a href="{{ url_for(request.path, page=aggregators.prev_num) }}">&#8592; {{ aggregators.prev_num }}  </a> |
         {% endif %}
-        ({{ aggregators.total }} Total)
+        Page {{ aggregators.page }}
+        {% if aggregators.has_next %}
+            | <a href="{{ url_for(request.path, page=aggregators.next_num) }}">{{ aggregators.next_num }} &#8594;</a>
+        {% endif %}
+        ({{ aggregators.total }} aggregators in total)
     </div>
 
     <ul class="block-list">
@@ -23,12 +23,12 @@
 
     <div class="pagination">
         {% if aggregators.has_prev %}
-            <a href="{{ url_for(current_page, page=aggregators.prev_num) }}">&#8592; {{ aggregators.prev_num }}  </a>
-        {% endif %} |
-        {{ aggregators.page }} |
-        {% if aggregators.has_next %}
-            <a href="{{ url_for(current_page, page=aggregators.next_num) }}">{{ aggregators.next_num }} &#8594;</a>
+            <a href="{{ url_for(request.path, page=aggregators.prev_num) }}">&#8592; {{ aggregators.prev_num }}  </a> |
         {% endif %}
-        ({{ aggregators.total }} Total)
+        Page {{ aggregators.page }}
+        {% if aggregators.has_next %}
+            | <a href="{{ url_for(request.path, page=aggregators.next_num) }}">{{ aggregators.next_num }} &#8594;</a>
+        {% endif %}
+        ({{ aggregators.total }} aggregators in total)
     </div>
-</dev>
+</div>

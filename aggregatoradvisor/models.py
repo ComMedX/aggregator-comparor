@@ -8,15 +8,18 @@ from sqlalchemy import (
     Date,
 )
 from rdalchemy import Mol
-import app
+from aggregatoradvisor import (
+    app,
+    db,
+)
 
 
 # Import Flask-SQLAlchemy objects
-Column = app.db.Column
-Model = app.db.Model
-Table = app.db.Table
-backref = app.db.backref
-relationship = app.db.relationship
+Column = db.Column
+Model = db.Model
+Table = db.Table
+backref = db.backref
+relationship = db.relationship
 # or use SQLAlchemy directly
 #from sqlalchemy import Column, Table
 #from sqlalchemy.orm import backref, relationship
@@ -24,17 +27,12 @@ relationship = app.db.relationship
 #Model = declarative_base()
 
 
-def to_structure(data):
-    return Mol.bind_expression(data)
-
-
 class Aggregator(Model):
     __tablename__ = 'aggregator'
 
     id = Column('id', Integer, primary_key=True)
     structure = Column('smiles', Mol, nullable=False)
-    inchikey = Column('inchikey', String(27), nullable=False)
-    name = Column('name', String, nullable=False, default='')
+    name = Column('name', String, default='')
     added = Column('added', DateTime, default=datetime.now, nullable=False)
 
     __table_args__ = (
@@ -50,11 +48,8 @@ class Aggregator(Model):
 
     def __init__(self, **kwargs):
         raw_structure = kwargs.pop('smiles', kwargs.get('structure'))
-
-        if 'id' not in kwargs and raw_structure is None:
-            raise ValueError("Must provide a structure when creating a Aggregator without an existing ID")
-
-        kwargs['structure'] = to_structure(raw_structure)
+        if raw_structure is not None:
+            kwargs['structure'] = Aggregator.structure.type.bind_expression(raw_structure)
         super(Aggregator, self).__init__(**kwargs)
 
     @property
@@ -74,20 +69,28 @@ class Aggregator(Model):
         return self.structure.as_mol
 
     @property
+    def inchi(self):
+        return self.structure.as_inchi
+
+    @property
+    def inchikey(self):
+        return self.structure.as_inchikey
+
+    @property
     def fp(self):
         return self.structure.rdkit_fp
 
     def __repr__(self):
-        return "Aggregator(id={0!r}, smiles={1!r} fp={2!r})" \
+        return "Aggregator(id={0!r}, smiles={1!r} name={2!r})" \
             .format(self.id,
                     self.smiles,
-                    self.fp)
+                    self.name)
 
     def __unicode__(self):
-        return u"#1 < {} >".format(self.smiles)
+        return u"#{0} < {1} >".format(self.id, self.smiles)
 
     def __str__(self):
-        return "#1 < {} >".format(self.smiles)
+        return "#{0} < {1} >".format(self.id, self.smiles)
 
 
 class Citation(Model):
@@ -99,13 +102,14 @@ class Citation(Model):
     short_reference = Column('short_reference', String, nullable=False)
     doi = Column('doi', String, nullable=False)
     published = Column('published', Date,    # Can be approximate, only year will/should be displayed
-                       default=lambda:datetime.now().year,
+                       default=lambda:datetime.now(),
                        nullable=False)
 
     aggregators = relationship(Aggregator,
-                               viewonly=True,
                                secondary=lambda:ReportedAggregator.__table__,
-                               backref=backref('citations', viewonly=True))
+                               lazy='dynamic',
+                               backref=backref('citations',  
+                                               lazy='dynamic'))
 
     @property
     def year(self):
@@ -129,13 +133,19 @@ class Citation(Model):
 
 
 class ReportedAggregator(Model):
+    __tablename__ = 'reported_aggregator'
+
     id = Column('id', Integer, primary_key=True)
     aggregator_fk = Column('aggregator_fk', Integer, ForeignKey(Aggregator.id), index=True, nullable=False)
     citation_fk = Column('citation_fk', Integer, ForeignKey(Citation.id), index=True, nullable=False)
-    concentration = Column('concentration', String, nullable=True)  # Maybe should be float, log(float)?
+    concentration = Column('concentration', String, default=u"10\u03BCM", nullable=True)
 
-    citation = relationship(Citation, backref='reports')
-    aggregator = Column(Aggregator, backref='reports')
+    citation = relationship(Citation, 
+                            uselist=False,
+                            backref=backref('reports', viewonly=True))
+    aggregator = relationship(Aggregator, 
+                              uselist=False,
+                              backref=backref('reports', viewonly=True))
 
     def __repr__(self):
         return 'ReportedAggregator(id={0!r}, aggregator_fk={1!r}, citation_fk={2!r}, concentration={3!r})'\
