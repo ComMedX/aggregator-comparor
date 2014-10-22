@@ -1,10 +1,44 @@
 {% extends "layout.html" %}
-{% block title %}Aggregators reported in {{ citation.short_reference }}{% endblock %}
+{% block title %}Cited Aggregator Sources{% endblock %}
 {% block content %}
-    <p><cite>{{ citation.full_reference }}</cite></p>
-    <p>
-        <strong>DOI:</strong>
-        <a href="{{ citation.doi_url }}" title="Link to paper">{{ citation.doi }}</a>
-    </p>
-    {% include "aggregator_table.html %}
+<div class="pagination">
+    {% if citations.has_prev %}
+        <a href="{{ url_for(request.path, page=citations.prev_num) }}">&#8592; {{ citations.prev_num }}  </a> |
+    {% endif %}
+    Page {{ citations.page }}
+    {% if citations.has_next %}
+        | <a href="{{ url_for(request.path, page=citations.next_num) }}">{{ citations.next_num }} &#8594;</a>
+    {% endif %}
+    ({{ citations.total }} citations in total)
+</div>
+
+<table id="citations">
+    <thead>
+        <tr>
+            <th>Paper</th>
+            <th>DOI</th>
+            <th>Aggregators</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for citation in citations.items %}
+        <tr>
+            <td>{{ citation.full_reference }}</td>
+            <td><a href="{{ citation.doi_url }}" title="View online">{{ citation.doi }}</a></td>
+            <td>{{ citation.aggregators.count() }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="pagination">
+    {% if citations.has_prev %}
+        <a href="{{ url_for(request.path, page=citations.prev_num) }}">&#8592; {{ citations.prev_num }}  </a> |
+    {% endif %}
+    Page {{ citations.page }}
+    {% if citations.has_next %}
+        | <a href="{{ url_for(request.path, page=citations.next_num) }}">{{ citations.next_num }} &#8594;</a>
+    {% endif %}
+    ({{ citations.total }} citations in total)
+</div>
 {% endblock %}

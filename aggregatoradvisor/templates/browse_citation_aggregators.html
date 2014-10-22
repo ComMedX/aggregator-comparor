@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block title %}Aggregators reported in {{ citation.short_reference }}{% endblock %}
+{% block content %}
+    <p><cite>{{ citation.full_reference }}</cite></p>
+    <p>
+        <strong>DOI:</strong>
+        <a href="{{ citation.doi_url }}" title="Link to paper">{{ citation.doi }}</a>
+    </p>
+    {% include "aggregator_table.html" %}
+{% endblock %}
