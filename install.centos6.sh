@@ -24,11 +24,19 @@ echo "shared_preload_libraries = 'rdkit'" >> $PG_CONFG
 service $PG_VERSION-postgresql initdb
 service $PG_VERSION-postgresql start
 
-# Enter user password
+# Create aggregatoradvisor database and write local config file
 DB='agad'
 USER='agad'
 PW='agad'
 scl enable $PG_VERSION "printf '$PW\n$PW\n' | createuser --echo --pwprompt $USER"
 scl enable $PG_VERSION "createdb --echo --owner $USER $DB"
+echo "SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://$USER:$PW@localhost/$DB'" > aggregatoradvisor.cfg
 
-python aggregatoradvisor/init.db
+# Install requirements
+pushd externals/rdalchemy
+python setup.py install
+popd
+pip install -r requirements.txt
+
+# Initialize tables
+python init_db.py
