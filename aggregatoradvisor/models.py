@@ -49,7 +49,7 @@ class Aggregator(Model):
     def __init__(self, **kwargs):
         raw_structure = kwargs.pop('smiles', kwargs.get('structure'))
         if raw_structure is not None:
-            kwargs['structure'] = Aggregator.structure.type.bind_expression(raw_structure)
+            kwargs['structure'] = coerse_to_mol(raw_struture)
         super(Aggregator, self).__init__(**kwargs)
 
     @property
@@ -163,3 +163,8 @@ class ReportedAggregator(Model):
         return "Aggregator #{0} < {1} > from {2}".format(self.aggregator_fk,
                                                          self.aggregator.smiles,
                                                          self.citation.short_reference)
+
+
+def coerse_to_mol(data, template=Aggregator.structure):
+    """ Cast input to Mol element of same type as Aggregator.structure """
+    return template.type.bind_expression(data)
