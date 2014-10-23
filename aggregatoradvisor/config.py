@@ -1,5 +1,5 @@
-PORT=8080
-DEBUG=True
+PORT = 8080
+DEBUG = True
 
 # Database Configuration
 SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://agad:agad@localhost/agad'
