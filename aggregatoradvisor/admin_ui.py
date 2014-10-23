@@ -18,26 +18,24 @@ from aggregatoradvisor.models import (
 )
 
 
+# Require administrator access to admin forms (trivial but important)
 class AuthenticatedModelView(ModelView):
     def is_accessible(self):
         return login.current_user.is_authenticated()
 
 
 class AggregatorView(AuthenticatedModelView):
-    column_list = ('id', 'smiles', 'logp', 'added', 'name')
-
+    column_list = ('id', 'smiles', 'logp', 'added', 'inchikey')
     form_columns = ('structure', 'added', 'name', 'citations')
-    #form_columns = ('structure', 'inchikey', 'added', 'name', 'citations')
-    #form_extra_columns = ('inchikey',)
-    form_exclude_columns = ('reports',)
-    form_overrides = {'structure': TextField}
+    form_exclude_columns = ('reports',)        # Don't show report mappings
+    form_overrides = {'structure': TextField}  # Structure should be input as SMILES
 
 
 class CitationView(AuthenticatedModelView):
     column_list = ('id', 'short_reference', 'title')
     form_columns = ('title', 'short_reference', 'full_reference', 'doi', 'published', 'aggregators')
-    form_exclude_columns = ('reports',)
-    form_overrides = {'full_refrence': TextAreaField}
+    form_exclude_columns = ('reports',)                 # Don't show report mappings
+    form_overrides = {'full_reference': TextAreaField}  # Allow full_reference as multi-line
 
 
 admin.add_view(AggregatorView(Aggregator, db.session))
