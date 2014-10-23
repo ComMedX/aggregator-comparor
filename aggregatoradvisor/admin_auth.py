@@ -48,9 +48,13 @@ class Administrator(login.UserMixin):
 class AdministratorLoginForm(Form):
     username = StringField(validators=[validators.required()])
     password = PasswordField(validators=[validators.required()])
+    
+    @property
+    def get_specified_user(self):
+        return get_administrator(self.username.data)
 
     def validate_login(self, field):
-        user = get_administrator(self.username.data)
+        user = self.get_specified_user()
 
         if user is None:
             raise validators.ValidationError('Invalid user')
@@ -65,6 +69,7 @@ class AdministratorLoginForm(Form):
 
 
 class AuthenticatedAdminIndexView(admin.AdminIndexView):
+    
     @admin.expose('/')
     def index(self):
         if not login.current_user.is_authenticated():
@@ -76,11 +81,12 @@ class AuthenticatedAdminIndexView(admin.AdminIndexView):
         # handle user login
         form = AdministratorLoginForm(request.form)
         if admin.helpers.validate_form_on_submit(form):
-            user = form.get_user()
+            user = form.get_specified_user()
             login.login_user(user, remember=True)
 
         if login.current_user.is_authenticated():
             return redirect(url_for('.index'))
+            
         self._template_args['form'] = form
         self._template_args['link'] = 'Login'
         return super(AuthenticatedAdminIndexView, self).index()
