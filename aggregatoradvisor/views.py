@@ -22,6 +22,7 @@ from aggregatoradvisor import (
 from aggregatoradvisor.models import (
     Aggregator,
     Citation,
+    coerse_to_mol,
 )
 
 IMAGE_FORMAT_MIME_TYPES = {
@@ -68,17 +69,16 @@ def search():
         return error, 400
 
     # Bind input to the same type as aggregator structure
-    query = Aggregator.structure.type.bind_expression(query_mol)
-
+    query = coerse_to_mol(query_mol)
     query_fp = query.bind.rdkit_fp                  # Force server-side fingerprint function
-    query_logp = round(query.logp, 3)
-    aggregator_fps = Aggregator.structure.rdkit_fp  # Get fingerprints 
-    aggregators = Aggregator.query
+    query_logp = round(query.logp, 3)               # Get "pretty" logp
+    aggregators = Aggregator.query                  # Searchable Aggregator dataset
+    aggregator_fps = Aggregator.structure.rdkit_fp  # Comparable fingerprint property
     
     # Construct structural query sorted and limited by similarity with tanimoto scores annotated
-    similar = aggregators.filter(aggregator_fps.similar_to(query_fp))\
-                         .order_by(aggregator_fps.tanimoto_nearest_neighbors(query_fp))\
-                         .add_columns(query_fp.tanimoto(aggregator_fps))
+    similar = aggregators.filter(aggregator_fps.similar_to(query_fp))  # Restrict to aggregators with high Tc
+    similar = similar.order_by(aggregator_fps.tanimoto_nearest_neighbors(query_fp))  # Put highest Tc's first
+    similar = similar.add_columns(query_fp.tanimoto(aggregator_fps))  # Annotate results with Tc
 
     # Run query with specified tanimoto threshold
     with tanimoto_threshold(db.engine, search_cutoff):
@@ -93,8 +93,9 @@ def search():
     max_tc = max(aggregator_tcs + [0])  # Add dummy score in event none found
     num_similar = len(similar_aggregators)
 
+    # Determine aggregator summary 
     if max_tc == 1.0:
-        summary = "aggregator" 
+        summary = "known" 
     if num_similar > 0 and query_logp > 3:
         summary = "likely"
     elif num_similar > 0:
