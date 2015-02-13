@@ -11,7 +11,8 @@ from flask import (
 )
 from flask.ext import admin
 from flask.ext import login
-from config import ADMINS
+
+from aggregatorcomparor.config import ADMINS
 
 
 def get_administrator(name):

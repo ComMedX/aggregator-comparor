@@ -1,0 +1,34 @@
+<div id="molecules">
+    <div class="pagination">
+        {% if molecules.has_prev %}
+            <a href="{{ url_for(request.endpoint, page=molecules.prev_num) }}">&#8592; {{ molecules.prev_num }}  </a> |
+        {% endif %}
+        Page {{ molecules.page }}
+        {% if molecules.has_next %}
+            | <a href="{{ url_for(request.endpoint, page=molecules.next_num) }}">{{ molecules.next_num }} &#8594;</a>
+        {% endif %}
+        ({{ molecules.total }} molecules in total)
+    </div>
+
+    <ul class="block-list">
+        {% for aggregator in molecules.items %}
+            <li>
+                <img src="{{ url_for('.draw', agg_id=aggregator.id) }}" alt="{{ aggregator.smiles }}" />
+                {% block  %}
+
+                {% endblock %}
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="pagination">
+        {% if molecules.has_prev %}
+            <a href="{{ url_for(request.endpoint, page=molecules.prev_num) }}">&#8592; {{ molecules.prev_num }}  </a> |
+        {% endif %}
+        Page {{ molecules.page }}
+        {% if molecules.has_next %}
+            | <a href="{{ url_for(request.endpoint, page=molecules.next_num) }}">{{ molecules.next_num }} &#8594;</a>
+        {% endif %}
+        ({{ molecules.total }} molecules in total)
+    </div>
+</div>

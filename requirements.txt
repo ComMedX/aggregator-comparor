@@ -6,4 +6,5 @@ flask-admin
 flask-login
 flask-mail
 flask-sqlalchemy
+flask-script
 flask-wtf

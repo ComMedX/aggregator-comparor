@@ -6,15 +6,16 @@ from wtforms.fields import (
     TextField,
 )
 from rdalchemy.rdalchemy import SmilesMolElement
-from aggregatoradvisor import (
+from aggregatorcomparor import (
     admin,
     app,
     db,
 )
-from aggregatoradvisor.models import (
+from aggregatorcomparor.models import (
     Aggregator,
     Citation,
-    ReportedAggregator,
+    CsdCompound,
+    AggregatorReport,
 )
 
 
@@ -31,13 +32,20 @@ class AggregatorView(AuthenticatedModelView):
     form_overrides = {'structure': TextField}  # Structure should be input as SMILES
 
 
+class CsdCompoundView(AuthenticatedModelView):
+    column_list = ('id', 'smiles', 'name', 'serial', 'inchikey')
+    form_columns = ('structure', 'refcode', 'serial')
+    form_overrides = {'structure': TextField}  # Structure should be input as SMILES
+
+
 class CitationView(AuthenticatedModelView):
-    column_list = ('id', 'short_reference', 'title')
-    form_columns = ('title', 'short_reference', 'full_reference', 'doi', 'published', 'aggregators')
+    column_list = ('id', 'authors', 'date')
+    form_columns = ('original_reference', 'doi', 'published', 'aggregators')
     form_exclude_columns = ('reports',)                 # Don't show report mappings
     form_overrides = {'full_reference': TextAreaField}  # Allow full_reference as multi-line
 
 
-admin.add_view(AggregatorView(Aggregator, db.session))
 admin.add_view(CitationView(Citation, db.session))
-admin.add_view(AuthenticatedModelView(ReportedAggregator, db.session))
+admin.add_view(AggregatorView(Aggregator, db.session))
+admin.add_view(AuthenticatedModelView(AggregatorReport, db.session))
+admin.add_view(CsdCompoundView(CsdCompound, db.session))

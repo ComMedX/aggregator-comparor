@@ -15,13 +15,14 @@ from flask import(
     send_file,
     url_for,
 )
-from aggregatoradvisor import (
+from aggregatorcomparor import (
     app,
     db,
 )
-from aggregatoradvisor.models import (
+from aggregatorcomparor.models import (
     Aggregator,
     Citation,
+    CsdCompound,
     coerse_to_mol,
 )
 
@@ -43,15 +44,23 @@ SEARCH_INPUT_FORMATS = [
 def index():
     return render_template('index.html', request=request)
 
-@app.route('/images/<int:agg_id>.png')
-@app.route('/images/<int:agg_id>.<format>')
-def draw(agg_id, format='png'):
+@app.route('/aggregators/<int:agg_id>.png')
+def draw_agg(agg_id, format='png'):
+    aggregator = Aggregator.query.get_or_404(agg_id)
+    return draw(aggregator.mol, format=format)
+
+
+@app.route('/csd_compounds/<int:csd_id>.png')
+def draw_csd(csd_id, format='png'):
+    compound = CsdCompound.query.get_or_404(csd_id)
+    return draw(compound.mol, format=format)
+
+
+def draw(mol, format='png'):
     if format not in IMAGE_FORMAT_MIME_TYPES:
         abort(404)
-
-    image_size = app.config.get('AGGREGATORS_DISPLAY_IMAGE_SIZE', (200,200))
-    aggregator = Aggregator.query.get_or_404(agg_id)
-    image = MolToImage(aggregator.mol, size=image_size)
+    image_size = app.config.get('MOLECULE_DISPLAY_IMAGE_SIZE', (200,200))
+    image = MolToImage(mol, size=image_size)
     image_data = image_to_buffer(image, format)
     mime_type = IMAGE_FORMAT_MIME_TYPES.get(format)
 
@@ -116,17 +125,30 @@ def search():
     return json.jsonify(**report)
 
 
-@app.route('/browse', defaults={'page_num': 1})
-@app.route('/browse/<int:page_num>')
-def browse_aggregators(page_num=1):
-    aggregators = get_aggregators_for_view(Aggregator.query, page_num, config=app.config)
+@app.route('/aggregators/', defaults={'page': 1})
+@app.route('/aggregators/page:<int:page>')
+def browse_aggregators(page=1):
+    aggregators = get_molecules_for_view(Aggregator, page, sorting=Aggregator.id, config=app.config)
     return render_template('browse_aggregators.html',
-                           request=request,
-                           aggregators=aggregators)
+                           molecules=aggregators)
+
+
+@app.route('/aggregators/similar', defaults={'page': 1})
+@app.route('/aggregators/similar/page:<int:page>')
+def similar_aggregators():
+    pass
+
+
+@app.route('/csd_compounds/', defaults={'page': 1})
+@app.route('/csd_compounds/page:<int:page>')
+def browse_compounds(page=1):
+    csd = get_molecules_for_view(CsdCompound.query, page, sorting=CsdCompound.id, config=app.config)
+    return render_template('browse_csd.html',
+                           molecules=csd)
 
 
 @app.route('/sources', defaults={'page_num': 1})
-@app.route('/sources/<int:page_num>')
+@app.route('/sources/page:<int:page_num>')
 def browse_citations(page_num=1):
     per_page = app.config.get('CITATIONS_DISPLAY_PER_PAGE', 10)
     ordering = Citation.published
@@ -137,10 +159,10 @@ def browse_citations(page_num=1):
 
 
 @app.route('/reference/<int:cite_id>', defaults={'page_num': 1})
-@app.route('/reference/<int:cite_id>/<int:page_num>')
+@app.route('/reference/<int:cite_id>/page:<int:page_num>')
 def browse_citation_aggregators(cite_id, page_num=1):
     citation = Citation.query.get_or_404(cite_id)
-    aggregators = get_aggregators_for_view(citation.aggregators, page_num, config=app.config)
+    aggregators = get_molecules_for_view(citation.aggregators, page_num, config=app.config)
     return render_template('browse_citation_aggregators.html',
                            request=request,
                            citation=citation,
@@ -150,9 +172,12 @@ def browse_citation_aggregators(cite_id, page_num=1):
 # Helper functions below
 
 
-def get_aggregators_for_view(aggregators, page_num, sorting=Aggregator.id, config=app.config):
-    per_page = config.get('AGGREGATORS_DISPLAY_PER_PAGE', 15)
-    ordered = aggregators.order_by(sorting)
+def get_molecules_for_view(molecules, page_num, sorting=None, config=app.config):
+    per_page = config.get('MOLECULES_DISPLAY_PER_PAGE', 15)
+    if sorting:
+        ordered = molecules.order_by(sorting)
+    else:
+        ordered = molecules
     paginated = ordered.paginate(page_num, per_page)
     return paginated
 
