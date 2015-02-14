@@ -1,0 +1,33 @@
+
+{% extends "layout.html" %}
+{% block content %}
+<!-- Main jumbotron for a primary marketing message or call to action -->
+<div class="jumbotron">
+
+  <h1>Welcome to Aggregator Comparor</h1>
+
+  <p>
+      This program lets you browse the Aggregator Advisor database and cross reference an additional ligand database
+      for similar structures. To load a ligand database please use the <code>manage.py</code> script on the command
+      line.
+  </p>
+</div><!-- /.jumbotron -->
+
+<div class="body-content">
+  <div class="row">
+    <div class="col-lg-4">
+      <h2><i class="fa fa-code"></i> <a href="{{ url_for('.aggregator_list') }}">Aggregators</a></h2>
+      <p>Browse and search for aggregators either by name or chemical structure.</p>
+    </div>
+    <div class="col-lg-4">
+      <h2><i class="fa fa-code"></i> <a href="{{ url_for('.ligand_list') }}">Ligands</a></h2>
+      <p>Browse and search for ligands (from your database of choice) either by name or chemical structure.</p>
+   </div>
+    <div class="col-lg-4">
+      <h2><i class="fa fa-edit"></i> Citations</h2>
+      <p>Browse citations in the aggregator advisor and view aggregators by original identifying paper.</p>
+      <p>In progress</p>
+    </div>
+  </div><!-- /.row -->
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% from "reports/macros.html" import render_ligand_report_table %}
+{% from "aggregators/macros.html" import render_similar_aggregator_tile %}
+{% from "ligands/macros.html" import render_ligand_tile, render_ligand_smiles_field, render_ligand_details_table %}
+{% block content %}
+    <!-- Add Compound view header -->
+    <div class="ligand body-content">
+        <div class="row">
+            <div class="col-sm-9">
+                <div class="row">
+                    <h1>
+                        <a href="{{ url_for('.ligand_detail', lig_id=ligand.id) }}" title="Permalink to {{ ligand.name }}">
+                            {{  ligand.name }}
+                        </a>
+                        ({{ ligand.source_database_name }} Name: <a href="{{ ligand.source_url }}">{{ ligand.refcode }}</a>)
+                    </h1>
+                </div>
+                <div class="row">
+                    {{ render_ligand_details_table(ligand) }}
+                </div>
+                <div class="row">
+                    {{ render_ligand_smiles_field(ligand) }}
+                </div>
+            </div>
+            <div class="col-sm-3 no-thumbnail-caption">
+                {{ render_ligand_tile(ligand) }}
+            </div>
+        </div>
+        <div class="ligand-reports panel panel-default row">
+            <div class="panel-heading">
+                <h3 class="panel-title">Similar Aggregators</h3>
+            </div>
+            <div class="row">
+                {% if similar_aggregators | count > 0 %}
+                    <div class="col-sm-12">
+                    {% for ligand_row in similar_aggregators | batch(None) %}
+                        <div class="row">
+                        {% for ligand in ligand_row %}
+                            <div class="col-sm-3 col-md-2">
+                                {{ render_similar_aggregator_tile(ligand) }}
+                            </div>
+                        {%  endfor %}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="info alert-info clearfix" role="info">
+                        There is no aggregators within 50% Tanimoto to this ligand.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

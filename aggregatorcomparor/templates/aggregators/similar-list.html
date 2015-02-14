@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% from "macros.html" import render_navigation with context %}
+{% from "aggregators/macros.html" import render_similar_aggregator_tile %}
+{% block content_class %}container-fluid{% endblock %}
+{% block content %}
+<div class="body-content">
+    {{ render_navigation(molecules, url_for('.aggregator_list'), url_for('.aggregators_similar_to')) }}
+    <div class="row">
+        <div class="col-sm-12">
+        {% for aggregator_row in molecules.items | batch(None) %}
+            <div class="row">
+            {% for aggregator in aggregator_row %}
+                <div class="col-sm-3 col-md-2">
+                    {{ render_similar_aggregator_tile(aggregator) }}
+                </div>
+            {%  endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {{ render_navigation(molecules, url_for('.aggregator_list'), url_for('.aggregators_similar_to')) }}
+</div>
+{% endblock %}

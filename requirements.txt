@@ -1,8 +1,11 @@
 wtforms
 sqlalchemy
 rdalchemy
+cssmin
+jsmin
 flask
 flask-admin
+flask-assets
 flask-login
 flask-mail
 flask-sqlalchemy

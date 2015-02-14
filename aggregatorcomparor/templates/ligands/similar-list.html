@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% from "macros.html" import render_navigation with context %}
+{% from "ligands/macros.html" import render_similar_ligand_tile %}
+{% block content_class %}container-fluid{% endblock %}
+{% block content %}
+<div class="body-content">
+    {{ render_navigation(molecules, url_for('.ligand_list'), url_for('.ligands_similar_to')) }}
+    <div class="row">
+        <div class="col-sm-12">
+        {% for ligand_row in molecules.items | batch(None) %}
+            <div class="row">
+            {% for ligand in ligand_row %}
+                <div class="col-sm-3 col-md-2">
+                    {{ render_similar_ligand_tile(ligand) }}
+                </div>
+            {%  endfor %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {{ render_navigation(molecules, url_for('.ligand_list'), url_for('.ligands_similar_to')) }}
+</div>
+{% endblock %}

@@ -1,0 +1,144 @@
+/* =============================================================================
+   App specific CSS file.
+   ========================================================================== */
+
+/* universal */
+
+html {
+  overflow-y: scroll;
+}
+
+body {
+  padding-top: 60px;
+  /*font-size: inherit;*/
+}
+
+section {
+  overflow: auto;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.container-narrow{
+  margin: 0 auto;
+  max-width: 700px;
+}
+
+/* Forms */
+
+.navbar-form input[type="text"],
+.navbar-form input[type="password"] {
+  width: 180px;
+}
+
+
+.form-register {
+  width: 50%;
+}
+
+.form-register .form-control {
+  position: relative;
+  font-size: 16px;
+  height: auto;
+  padding: 10px;
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+.input-xs {
+  height: 24px;
+  padding: 3px 5px 2px;
+  font-size: 10px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+
+
+/* footer */
+
+footer {
+  margin-top: 45px;
+  padding-top: 5px;
+  border-top: 1px solid #eaeaea;
+  color: #999999;
+}
+
+footer a {
+  color: #999999;
+}
+
+footer p {
+  float: right;
+  margin-right: 25px;
+}
+
+footer ul {
+  list-style: none;
+}
+
+footer ul li {
+  float: left;
+  margin-left: 10px;
+}
+
+footer .company {
+  float: left;
+  margin-left: 25px;
+}
+
+footer .footer-nav {
+  float: right;
+  margin-right: 25px;
+  list-style: none;
+}
+
+/* Overrides */
+
+.no-thumbnail-caption .caption {
+    display: none;
+}
+
+/* ZINC ELEMENT STYLES */
+
+.molecule.thumbnail .caption {
+    padding: 0;
+    display: block;
+    white-space: nowrap;
+    text-align: center;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.dl-wrap > dt { white-space: normal; text-align: left; }
+.dl-delimited > dd > * { margin: 2px 0; }
+.dl-delimited > * { border-top: 1px solid #ddd; }
+
+.dl-delimited > dt:first-child { border-top: none; }
+.dl-delimited > dt:first-child + dd { border-top: none; }
+
+.list-inline-delimited > li:after { content: ", "; }
+.list-inline-delimited > li:last-child::after { content: ""; }
+
+.panel-default { border: none; }
+.panel-default > .panel-heading { margin: 0; }
+
+.panel-scrollable { margin-bottom: 10px; }
+.panel-scrollable > :first-child + * {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.panel > .alert { border-radius: 0; }
+
+.table-numeric td, .table-numeric th { text-align: center; vertical-align: top; }
+.table .units { display: block; }
+
+.input-group-filter :last-child { border-right: none; border-radius: 0; }
+.input-group-filter :first-child { border-radius: 0; }
+.input-group-filter > * { border-top: none; }
+
+.navigation { vertical-align: middle; }
+.navigation .form-group, .navigation .pagination { margin-top: 0; }

@@ -14,7 +14,7 @@ from aggregatorcomparor import (
 from aggregatorcomparor.models import (
     Aggregator,
     Citation,
-    CsdCompound,
+    Ligand,
     AggregatorReport,
 )
 
@@ -32,7 +32,7 @@ class AggregatorView(AuthenticatedModelView):
     form_overrides = {'structure': TextField}  # Structure should be input as SMILES
 
 
-class CsdCompoundView(AuthenticatedModelView):
+class LigandView(AuthenticatedModelView):
     column_list = ('id', 'smiles', 'name', 'serial', 'inchikey')
     form_columns = ('structure', 'refcode', 'serial')
     form_overrides = {'structure': TextField}  # Structure should be input as SMILES
@@ -45,7 +45,7 @@ class CitationView(AuthenticatedModelView):
     form_overrides = {'full_reference': TextAreaField}  # Allow full_reference as multi-line
 
 
-admin.add_view(CitationView(Citation, db.session))
-admin.add_view(AggregatorView(Aggregator, db.session))
-admin.add_view(AuthenticatedModelView(AggregatorReport, db.session))
-admin.add_view(CsdCompoundView(CsdCompound, db.session))
+#admin.add_view(CitationView(Citation, db.session))
+#admin.add_view(AggregatorView(Aggregator, db.session))
+#admin.add_view(AuthenticatedModelView(AggregatorReport, db.session))
+#admin.add_view(LigandView(Ligand, db.session))

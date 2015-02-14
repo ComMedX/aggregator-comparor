@@ -1,0 +1,68 @@
+{%- macro render_ligand_tile(ligand) -%}
+<div class="ligand molecule thumbnail">
+    <a href="{{ url_for('.ligand_detail', lig_id=ligand.id) }}">
+        <img src="{{ url_for('.ligand_image', lig_id=ligand.id) }}"
+             alt="{{ ligand.smiles }}">
+        <strong class="caption">{{ ligand.name }}</strong>
+    </a>
+</div>
+{%- endmacro -%}
+
+{%- macro render_similar_ligand_tile(ligand) -%}
+<div class="ligand molecule thumbnail">
+    <a href="{{ url_for('.ligand_detail', lig_id=ligand.id) }}">
+        <img src="{{ url_for('.ligand_image', lig_id=ligand.id) }}"
+             alt="{{ ligand.smiles }}">
+        <p class="caption">{{ ligand.name }}</p>
+        <p class="caption">{{ ligand.tanimoto_similarity_percentage }}% Similar</p>
+    </a>
+</div>
+{%- endmacro -%}
+
+{%- macro render_ligand_smiles_field(ligand) -%}
+<div class="input-group input-sm">
+    <label for="ligand-smiles-field"
+           id="ligand-smiles-field"
+           class="input-group-addon"
+           title="Click to copy to clipboard">SMILES</label>
+    <input type="text" class="form-control" id="ligand-smiles-field" readonly value="{{ ligand.smiles }}">
+    <span class="input-group-btn">
+        <button class="btn btn-default" type="button"><span class=" glyphicon glyphicon-pencil"></span> <span class="sr-only">Copy</span></button>
+      </span>
+</div>
+{%- endmacro -%}
+
+{%- macro render_ligand_details_table(ligand) -%}
+<table class="table table-striped table-condensed table-hover table-numeric">
+    <thead>
+        <tr>
+            <th><abbr title="Partition Coefficient">logP</abbr></th>
+            <th><abbr title="Molecular Weight [Da]">Weight</abbr></th>
+            <th>Heavy Atoms</th>
+            <th>&hellip;</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>{{ ligand.logp }}</td>
+            <td>{{ ligand.mwt }}</td>
+            <td>{{ ligand.num_heavy_atoms }}</td>
+            <td>
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                      <span class="glyphicon glyphicon-download-alt" aria-label="Download" title="Download">
+                          <span class="sr-only">Download</span>
+                      </span>
+                      <span class="caret"></span>
+                  </button>
+                  <ul class="dropdown-menu pull-right" role="menu">
+                      <li><a href="#">SMILES</a></li>
+                      <li><a href="#">MOL2</a></li>
+                      <li><a href="#">SDF</a></li>
+                  </ul>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>
+{%- endmacro -%}

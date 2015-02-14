@@ -1,0 +1,18 @@
+1	10.1021/jm030191r	Seidler J, McGovern SL, Doman TN, Shoichet BK. J Med Chem, 46, 4477-86 (2003)
+2	10.1021/jm701500e	Babaoglu, et al. J Med Chem, 51, 2502-2011 (2008)
+3	bkslab.org/ziebart	Kristin Ziebart. Shoichet Lab In House Data
+4	10.1021/jm100254w	Doak AK, Wille H, Pruisner SB and Shoichet BK. J Med Chem, 53, 4259-4265 (2010)
+5	10.1021/ja802977h	Coan KED and Shoichet BK. J.Am.Chem.Soc, 130, 9606-9612 (2008)
+6	10.1021/jm020427b	McGovern SL and Shoichet BK. J Med Chem, 46, 1478-1483 (2003)
+7	10.1021/jm010533y	McGovern SL, Caselli E, Grigorieff N and Shoichet BK. J Med Chem, 45, 1712-1722 (2002)
+8	10.1039/b616314a	Coan KE and Shoichet BK. Mol. BioSyst, 3, 208-213, (2007)
+9	10.1021/jm030266r	McGovern SL, Helfand, BT, Feng, B and Shoichet BK. J Med Chem, 46, 4265-4272 (2003)
+10	10.1021/jm060115z	Reddie KG, Roberts DR and Dore TM. J Med Chem, 49, 4857-4860 (2006)
+11	10.1021/jm049439i	Frenkel YV, Clark AD Jr, Das K, Wang UH, Lewi P, Jannssen PAJ and Arnold E. J Med Chem, 48, 1974-1983 (2005)
+12	10.1021/jm700952v	Giannetti AM, Koch BD, Browner MF. J Med Chem, 51, 574-480 (2008)
+13	10.1021/bi0491907	Liu HY, Wang Z, Regni C, Zou X, Tipton PA. Biochemistry, 43, 8662-8669 (2004)
+14	10.1021/jm9009229	Ferreira RS, Bryant C, Ang KKH, McKerrow JH, Shoichet BK, Renslo AR. J Med Chem, 52, 5005-5008 (2009)
+15	bkslab.org/doak	Allison Doak. Shoichet Lab In House Data
+16	10.1021/jm901070c	Jadhav A, et al. J Med Chem, 53, 37-51 (2010)
+17	10.1073/pnas.1120431109	Mysinger M, et al. PNAS, 109, 5517-5522 (2012)
+18	10.1021/jm100488w	Ferreira RS, Simeonov A, Jadhav A, Eidam O, Mott BT, Keiser MJ, McKerrow JH, Maloney DJ, Irwin JJ and Shoichet BK. J Med Chem, 2010, 53, 4891-905.

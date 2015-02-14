@@ -1,0 +1,84 @@
+{%- macro render_navigation(pagination=None, lookup=None, search=None, label='top') -%}
+<nav class="navigation row">
+    {{ render_pagination(pagination) }}
+    {{ render_name_lookup(lookup, label) }}
+    {{ render_smiles_search(search, label) }}
+</nav>
+{%- endmacro -%}
+
+{%- macro render_pagination(pagination) %}
+{%- if not page_query_args -%}
+{%- set page_query_args = {} -%}
+{%- endif -%}
+<div class="col-sm-3 text-center">
+  {% if pagination %}
+  <ul class=pagination>
+    {%  if pagination.has_prev %}
+        <li>
+            <a href="{{ url_for(request.endpoint, page=pagination.prev_num, **page_query_args) }}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+    {% else %}
+        <li class="disabled">
+            <span aria-label="Previous" aria-hidden="true">&laquo;</span>
+        </li>
+    {% endif %}
+    {% for page in pagination.iter_pages() %}
+        {% if page %}
+            <li class="{{ 'active' if page == pagination.page }}">
+                <a href="{{ url_for(request.endpoint, page=page, **page_query_args) }}">
+                    {{ page }}
+                    {% if page == pagination.page %} <span class="sr-only">current</span> {% endif %}
+                </a>
+            </li>
+        {% else %}
+          <li class="disabled"><span class=ellipsis>&hellip;</span></li>
+        {% endif %}
+    {% endfor %}
+  {%  if pagination.has_next %}
+        <li>
+            <a href="{{ url_for(request.endpoint, page=pagination.next_num, **page_query_args) }}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    {% else %}
+        <li class="disabled">
+            <span aria-label="Next" aria-hidden="true">&raquo;</span>
+        </li>
+    {% endif %}
+  </ul>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{%- macro render_name_lookup(lookup, label='') %}
+<div class="col-sm-3 text-center">
+  {% if lookup %}
+      <form class="form-horizontal" class="name-lookup" action="{{ lookup }}" method="GET">
+          <div class="form-group">
+            <label for="lookup" class="col-sm-2">Name</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control name-lookup" id="lookup-{{ label }}" name="name" placeholder="By Name">
+              </div>
+          </div>
+      </form>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{%- macro render_smiles_search(search, label='') %}
+<div class="col-sm-6 text-center">
+  {% if search %}
+      <form class="form-horizontal smiles-search" action="{{ search }}" method="GET">
+          <div class="form-group">
+            <label for="smiles" class="col-sm-2">SMILES</label>
+              <div class="col-sm-10">
+                <input type="text" class="form-control smiles-search" id="smiles-{{ label }}" name="smiles" placeholder="By SMILES">
+              </div>
+          </div>
+      </form>
+  {% endif %}
+</div>
+{% endmacro %}

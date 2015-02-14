@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% from "reports/macros.html" import render_aggregator_report_table %}
+{% from "ligands/macros.html" import render_similar_ligand_tile %}
+{% from "aggregators/macros.html" import render_aggregator_tile, render_aggregator_smiles_field, render_aggregator_details_table %}
+{% block content %}
+    <!-- Add Compound view header -->
+    <div class="aggregator body-content">
+        <div class="row">
+            <div class="col-sm-9">
+                <div class="row">
+                    <h1>
+                        <a href="{{ url_for('.aggregator_detail', agg_id=aggregator.id) }}" title="Permalink to {{ aggregator.name }}">
+                            {{  aggregator.name }}
+                        </a>
+                    </h1>
+                </div>
+                <div class="row">
+                    {{ render_aggregator_details_table(aggregator) }}
+                </div>
+                <div class="row">
+                    {{ render_aggregator_smiles_field(aggregator) }}
+                </div>
+            </div>
+            <div class="col-sm-3 no-thumbnail-caption">
+                {{ render_aggregator_tile(aggregator) }}
+            </div>
+        </div>
+        <div class="aggregator-reports panel panel-default row">
+            <div class="panel-heading">
+                <h3 class="panel-title">Aggregation Reports</h3>
+            </div>
+            {% if aggregator.reports | count > 0 -%}
+                {{ render_aggregator_report_table(aggregator.reports) }}
+            {%- else -%}
+                <div class="warning alert-warning clearfix" role="warning">
+                    There is no known citations for this compound. However, we seem to know that it is an aggregator.
+                    You should probably <a href="mailto:jir322@gmail.com">Tell John</a> about this.
+                </div>
+            {%- endif %}
+        </div>
+        <div class="aggregator-reports panel panel-default row">
+            <div class="panel-heading">
+                <h3 class="panel-title">Similar Ligands</h3>
+            </div>
+            {% if similar_ligands | count > 0 %}
+            <div class="row">
+                <div class="col-sm-12">
+                {% for ligand_row in similar_ligands | batch(None) %}
+                    <div class="row">
+                    {% for ligand in ligand_row %}
+                        <div class="col-sm-3 col-md-2">
+                            {{ render_similar_ligand_tile(ligand) }}
+                        </div>
+                    {%  endfor %}
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info clearfix" role="alert">
+                There were no ligands within 50% Tanimoto to this aggregator.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

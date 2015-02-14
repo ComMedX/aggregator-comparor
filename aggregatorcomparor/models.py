@@ -5,6 +5,7 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
+    extract,
     ForeignKey,
     func,
     Index,
@@ -64,6 +65,18 @@ class MoleculeMixin(object):
         def mwt(cls):
             return cls.structure.mwt
         return mwt
+
+    @declared_attr
+    def num_heavy_atoms(cls_):
+        @hybrid_property
+        def num_heavy_atoms(self):
+            return self.structure.num_heavy_atoms
+
+        @num_heavy_atoms.comparator
+        def num_heavy_atoms(cls):
+            return cls.structure.num_heavy_atoms
+
+        return num_heavy_atoms
 
     @hybrid_property
     def logp(self):
@@ -166,7 +179,9 @@ class Citation(Model):
     aggregators = relationship(Aggregator,
                                secondary=lambda:AggregatorReport.__table__,
                                lazy='dynamic',
-                               backref=backref('citations', lazy='dynamic'))
+                               backref=backref('citations',
+                                               lazy='dynamic',
+                                               order_by=lambda: Citation.year))
 
     @hybrid_property
     def year(self):
@@ -181,11 +196,15 @@ class Citation(Model):
 
     @year.comparator
     def year(cls):
-        return func.YEAR(cls.published)
+        return extract('YEAR', cls.published)
+
+    @year.expression
+    def year(cls):
+        return extract('YEAR', cls.published)
 
     @property
     def doi_url(self):
-        tpl = unicode(current_app.config.get("DOI_URL_TPL", u"http://dx.doi.org/{}"))
+        tpl = unicode(current_app.config.get("DOI_URL_TPL", u"http://dx.doi.org/{0.doi}"))
         return tpl.format(self.doi)
 
     def __repr__(self):
@@ -208,10 +227,10 @@ class AggregatorReport(Model):
 
     citation = relationship(Citation, 
                             uselist=False,
-                            backref=backref('reports'))
+                            backref=backref('reports', order_by=aggregator_fk))
     aggregator = relationship(Aggregator, 
                               uselist=False,
-                              backref=backref('reports'))
+                              backref=backref('reports', order_by=citation_fk))
 
     def __repr__(self):
         return '<ReportedAggregator(id={0.id!r}, '\
@@ -219,12 +238,12 @@ class AggregatorReport(Model):
                                    'citation_fk={0.citation_fk!r})>'.format(self)
 
 
-class CsdCompound(MoleculeMixin, Model):
+class Ligand(MoleculeMixin, Model):
     __tablename__ = 'csdcompound'
 
     id = Column('id', Integer, primary_key=True)
     refcode = Column('refcode', String, nullable=False)
-    serial = Column('serial', Integer, default=1, nullable=False)
+    serial = Column('serial', Integer, nullable=True)
     structure = Column('smiles', Mol, nullable=True)  # Null can mean failure
 
     def _normalize_kwargs_name(self, kwargs):
@@ -245,7 +264,16 @@ class CsdCompound(MoleculeMixin, Model):
     def __init__(self, **kwargs):
         self._normalize_kwargs_structure(kwargs)
         self._normalize_kwargs_name(kwargs)
-        super(CsdCompound, self).__init__(**kwargs)
+        super(Ligand, self).__init__(**kwargs)
+
+    @property
+    def source_database_name(self):
+        return current_app.config.get("LIGAND_SOURCE_NAME", 'Original')
+
+    @property
+    def source_url(self):
+        tpl = current_app.config.get("LIGAND_SOURCE_URL_TPL", '')
+        return tpl.format(self)
 
     @hybrid_property
     def name(self):
@@ -256,7 +284,7 @@ class CsdCompound(MoleculeMixin, Model):
         return func.concat(cls.refcode, '.', cls.serial)
 
     def __repr__(self):
-        return "<CsdCompound(id={0.id!r}, refcode={0.refcode!r}, serial={0.serial!r}, smiles={0.smiles!r})>".format(
+        return "<Ligand(id={0.id!r}, refcode={0.refcode!r}, serial={0.serial!r}, smiles={0.smiles!r})>".format(
             self)
 
     def __unicode__(self):
@@ -300,3 +328,11 @@ def ref_line_to_citation(line):
     if len(extra) > 2:
         citation.pages = extra[2]
     return citation
+
+
+def mol_from_agg_id(agg_id):
+    return Aggregator.query.get_or_404(agg_id).mol
+
+
+def mol_from_lig_id(lig_id):
+    return Ligand.query.get_or_404(lig_id).mol

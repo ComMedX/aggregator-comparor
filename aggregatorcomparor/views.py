@@ -1,97 +1,53 @@
-from cStringIO import StringIO
-import operator
-from rdkit.Chem import (
-    MolFromSmiles,
-    MolFromSmarts,
-)
-from rdkit.Chem.inchi import MolFromInchi
-from rdkit.Chem.Draw import MolToImage
+
 from rdalchemy.rdalchemy import tanimoto_threshold
 from flask import(
-    abort,
     json,
     render_template,
     request,
-    send_file,
-    url_for,
 )
-from aggregatorcomparor import (
+from .core import (
     app,
     db,
 )
-from aggregatorcomparor.models import (
+from .models import (
     Aggregator,
     Citation,
-    CsdCompound,
+    Ligand,
+    func,
     coerse_to_mol,
 )
-
-IMAGE_FORMAT_MIME_TYPES = {
-    'jpg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-}
-
-SEARCH_INPUT_FORMATS = [
-    ('smiles', MolFromSmiles),
-    ('smarts', MolFromSmarts),
-    ('inchi', MolFromInchi),
-]
+from .helpers import (
+    annotate_tanimoto_similarity,
+    draw,
+    extract_query_mol,
+    get_molecules_for_view,
+    get_similarity_parameters,
+    get_similar_molecules,
+    SEARCH_INPUT_FORMATS,
+    run_similar_molecules_query,
+)
 
 
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html', request=request)
+    return render_template('home.html', request=request)
 
 @app.route('/aggregators/<int:agg_id>.png')
-def draw_agg(agg_id, format='png'):
+def aggregator_image(agg_id, format='png'):
     aggregator = Aggregator.query.get_or_404(agg_id)
     return draw(aggregator.mol, format=format)
 
 
-@app.route('/csd_compounds/<int:csd_id>.png')
-def draw_csd(csd_id, format='png'):
-    compound = CsdCompound.query.get_or_404(csd_id)
+@app.route('/ligands/<int:lig_id>.png')
+def ligand_image(lig_id, format='png'):
+    compound = Ligand.query.get_or_404(lig_id)
     return draw(compound.mol, format=format)
-
-
-def draw(mol, format='png'):
-    if format not in IMAGE_FORMAT_MIME_TYPES:
-        abort(404)
-    image_size = app.config.get('MOLECULE_DISPLAY_IMAGE_SIZE', (200,200))
-    image = MolToImage(mol, size=image_size)
-    image_data = image_to_buffer(image, format)
-    mime_type = IMAGE_FORMAT_MIME_TYPES.get(format)
-
-    return send_file(image_data, mime_type)
 
 
 @app.route('/search')
 def search():
-    default_search_cutoff = app.config.get('AGGREGATOR_SEARCH_TANIMOTO_CUTOFF', 0.50)
-    search_cutoff = float(request.args.get('similarity_threshold', default_search_cutoff))
 
-    query_mol, error = extract_query_mol(request.args, SEARCH_INPUT_FORMATS)
-
-    if error is not None:
-        return error, 400
-
-    # Bind input to the same type as aggregator structure
-    query = coerse_to_mol(query_mol)
-    query_fp = query.bind.rdkit_fp                  # Force server-side fingerprint function
-    query_logp = round(query.logp, 3)               # Get "pretty" logp
-    aggregators = Aggregator.query                  # Searchable Aggregator dataset
-    aggregator_fps = Aggregator.structure.rdkit_fp  # Comparable fingerprint property
-    
-    # Construct structural query sorted and limited by similarity with tanimoto scores annotated
-    similar = aggregators.filter(aggregator_fps.similar_to(query_fp))  # Restrict to aggregators with high Tc
-    similar = similar.order_by(aggregator_fps.tanimoto_nearest_neighbors(query_fp))  # Put highest Tc's first
-    similar = similar.add_columns(query_fp.tanimoto(aggregator_fps))  # Annotate results with Tc
-
-    # Run query with specified tanimoto threshold
-    with tanimoto_threshold(db.engine, search_cutoff):
-        nearest_tc = similar.all()
 
     # Split out aggregators and Tc scores
     try:
@@ -125,26 +81,81 @@ def search():
     return json.jsonify(**report)
 
 
+@app.route('/aggregators/<int:agg_id>')
+def aggregator_detail(agg_id):
+    aggregator = Aggregator.query.get_or_404(agg_id)
+    similar_ligands = list(get_similar_molecules(Ligand, aggregator.structure, limit=6))
+    return render_template('aggregators/detail.html',
+                           aggregator=aggregator,
+                           similar_ligands=similar_ligands)
+
+
 @app.route('/aggregators/', defaults={'page': 1})
 @app.route('/aggregators/page:<int:page>')
-def browse_aggregators(page=1):
-    aggregators = get_molecules_for_view(Aggregator, page, sorting=Aggregator.id, config=app.config)
-    return render_template('browse_aggregators.html',
-                           molecules=aggregators)
+def aggregator_list(page=1):
+    query = Aggregator.query
+    sorting = Aggregator.id
+    if 'name' in request.args:
+        query = query.filter(func.lower(Aggregator.name).contains(request.args['name'].lower()))
+        sorting = Aggregator.name
+    if request.args.get('format') == 'json':
+        suggestions = [agg.name for agg in query.limit(20)]
+        return json.dumps(suggestions), 'application/javascript'
+    else:
+        aggregators = get_molecules_for_view(query, page, sorting=sorting, config=app.config)
+        return render_template('aggregators/list.html', molecules=aggregators)
 
 
 @app.route('/aggregators/similar', defaults={'page': 1})
 @app.route('/aggregators/similar/page:<int:page>')
-def similar_aggregators():
-    pass
+def aggregators_similar_to(page=1):
+    params = get_similarity_parameters(this_request=request)
+    if page == 0:
+        del params['limit']
+    with run_similar_molecules_query(Aggregator, params) as query:
+        pagination = get_molecules_for_view(query, page, sorting=None, config=app.config)
+        pagination.items = annotate_tanimoto_similarity(pagination.items)
+        return render_template('aggregators/similar-list.html',
+                               molecules=pagination,
+                               page_query_args=request.args)
 
 
-@app.route('/csd_compounds/', defaults={'page': 1})
-@app.route('/csd_compounds/page:<int:page>')
-def browse_compounds(page=1):
-    csd = get_molecules_for_view(CsdCompound.query, page, sorting=CsdCompound.id, config=app.config)
-    return render_template('browse_csd.html',
-                           molecules=csd)
+@app.route('/ligands/<int:lig_id>')
+def ligand_detail(lig_id):
+    ligand = Ligand.query.get_or_404(lig_id)
+    similar_aggregators = list(get_similar_molecules(Aggregator, ligand.structure, limit=6))
+    return render_template('ligands/detail.html',
+                           ligand=ligand,
+                           similar_aggregators=similar_aggregators)
+
+
+@app.route('/ligands/', defaults={'page': 1})
+@app.route('/ligands/page:<int:page>')
+def ligand_list(page=1):
+    query = Ligand.query
+    sorting = Ligand.id
+    if 'name' in request.args:
+        query = query.filter(func.lower(Ligand.refcode).contains(request.args['name'].lower()))
+        sorting = Ligand.refcode
+    if request.args.get('format') == 'json':
+        suggestions = [lig.refcode for lig in query.limit(20)]
+        return json.dumps(suggestions), 'application/javascript'
+    ligands = get_molecules_for_view(query, page, sorting=sorting, config=app.config)
+    return render_template('ligands/list.html', molecules=ligands)
+
+
+@app.route('/ligands/similar', defaults={'page': 1})
+@app.route('/ligands/similar/page:<int:page>')
+def ligands_similar_to(page=1):
+    params = get_similarity_parameters(this_request=request)
+    if page == 0:
+        del params['limit']
+    with run_similar_molecules_query(Ligand, params) as query:
+        pagination = get_molecules_for_view(query, page, sorting=None, config=app.config)
+        pagination.items = annotate_tanimoto_similarity(pagination.items)
+        return render_template('ligands/similar-list.html',
+                               molecules=pagination,
+                               page_query_args=request.args)
 
 
 @app.route('/sources', defaults={'page_num': 1})
@@ -169,42 +180,4 @@ def browse_citation_aggregators(cite_id, page_num=1):
                            aggregators=aggregators)
 
 
-# Helper functions below
-
-
-def get_molecules_for_view(molecules, page_num, sorting=None, config=app.config):
-    per_page = config.get('MOLECULES_DISPLAY_PER_PAGE', 15)
-    if sorting:
-        ordered = molecules.order_by(sorting)
-    else:
-        ordered = molecules
-    paginated = ordered.paginate(page_num, per_page)
-    return paginated
-
-
-def image_to_buffer(image, format='PNG'):
-    buf = StringIO()
-    image.save(buf, format.upper())
-    buf.seek(0)
-    return buf
-
-
-def extract_query_mol(params, formats):
-    mol, error = None, None
-    for input_format, parser in formats:
-        try:
-            query_input = params[input_format]
-            mol = parser(str(query_input))
-            if mol is None:
-                raise ValueError("Failed to parse {}".format(input_format))
-        except KeyError:
-            pass
-        except ValueError as e:
-            error = "Invalid query term (reason: {})".format(str(e))
-            break
-        else:
-            break
-    else:
-        error = "Query parameter missing (expected one of: {}"\
-                    .format(', '.join(fmt for fmt, _ in SEARCH_INPUT_FORMATS))
-    return mol, error
+# Helper functions belo
