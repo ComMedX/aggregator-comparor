@@ -26,6 +26,7 @@ assets.register("css_all", Bundle(
     "libs/bootstrap/dist/css/bootstrap.css",
     "libs/bootstrapxl.css",
     "css/style.css",
+    'libs/font-awesome4/css/font-awesome.min.css',
     output="public/css/common.css"
 ))
 
@@ -37,4 +38,3 @@ assets.register("js_all", Bundle(
     "js/plugins.js",
     output="public/js/common.js"
 ))
-

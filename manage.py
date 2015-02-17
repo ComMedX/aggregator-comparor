@@ -67,7 +67,7 @@ def load_ligands(*args, **kwargs):
     actions.load_ligands(*args, **kwargs)
 
 
-manager.add_command('server', Server(port=app.config.get('PORT', 8090)))
+manager.add_command('server', Server(port=app.config.get('PORT', 8090), host='0.0.0.0'))
 manager.add_command('shell', Shell(make_context=_make_context))
 
 if __name__ == '__main__':

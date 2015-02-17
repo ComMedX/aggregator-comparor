@@ -12149,8 +12149,8 @@ $(document).ready(function() {
                 }
             })
         },
-        selected: function(a, b, c) {
-            $("form.name-lookup").submit();
+        onselect: function(_sel, _1, _2) {
+            this.$element.closest("form").submit();
         }
     });
 });

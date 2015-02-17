@@ -10,7 +10,7 @@
 {%- if not page_query_args -%}
 {%- set page_query_args = {} -%}
 {%- endif -%}
-<div class="col-sm-3 text-center">
+<div class="col-sm-4">
   {% if pagination %}
   <ul class=pagination>
     {%  if pagination.has_prev %}
@@ -24,7 +24,7 @@
             <span aria-label="Previous" aria-hidden="true">&laquo;</span>
         </li>
     {% endif %}
-    {% for page in pagination.iter_pages() %}
+    {% for page in pagination.iter_pages(left_current=1, right_current=2) %}
         {% if page %}
             <li class="{{ 'active' if page == pagination.page }}">
                 <a href="{{ url_for(request.endpoint, page=page, **page_query_args) }}">
@@ -53,7 +53,7 @@
 {% endmacro %}
 
 {%- macro render_name_lookup(lookup, label='') %}
-<div class="col-sm-3 text-center">
+<div class="col-sm-2 text-center">
   {% if lookup %}
       <form class="form-horizontal" class="name-lookup" action="{{ lookup }}" method="GET">
           <div class="form-group">

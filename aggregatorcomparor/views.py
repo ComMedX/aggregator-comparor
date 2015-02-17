@@ -33,19 +33,9 @@ from .helpers import (
 def index():
     return render_template('home.html', request=request)
 
-@app.route('/aggregators/<int:agg_id>.png')
-def aggregator_image(agg_id, format='png'):
-    aggregator = Aggregator.query.get_or_404(agg_id)
-    return draw(aggregator.mol, format=format)
 
 
-@app.route('/ligands/<int:lig_id>.png')
-def ligand_image(lig_id, format='png'):
-    compound = Ligand.query.get_or_404(lig_id)
-    return draw(compound.mol, format=format)
-
-
-@app.route('/search')
+@app.route('/aggregator-status')
 def search():
 
 
@@ -81,13 +71,23 @@ def search():
     return json.jsonify(**report)
 
 
+######################################################################################################################
+
+
 @app.route('/aggregators/<int:agg_id>')
 def aggregator_detail(agg_id):
     aggregator = Aggregator.query.get_or_404(agg_id)
-    similar_ligands = list(get_similar_molecules(Ligand, aggregator.structure, limit=6))
+    similar_ligands = list(get_similar_molecules(Ligand, aggregator.structure, cutoff=0.5, limit=6))
     return render_template('aggregators/detail.html',
                            aggregator=aggregator,
                            similar_ligands=similar_ligands)
+
+
+@app.route('/aggregators/<int:agg_id>.png')
+def aggregator_image(agg_id, format='png'):
+    aggregator = Aggregator.query.get_or_404(agg_id)
+    return draw(aggregator.mol, format=format)
+
 
 
 @app.route('/aggregators/', defaults={'page': 1})
@@ -96,7 +96,7 @@ def aggregator_list(page=1):
     query = Aggregator.query
     sorting = Aggregator.id
     if 'name' in request.args:
-        query = query.filter(func.lower(Aggregator.name).contains(request.args['name'].lower()))
+        query = query.filter(func.lower(Aggregator.name).startswith(request.args['name'].lower()))
         sorting = Aggregator.name
     if request.args.get('format') == 'json':
         suggestions = [agg.name for agg in query.limit(20)]
@@ -120,13 +120,22 @@ def aggregators_similar_to(page=1):
                                page_query_args=request.args)
 
 
+#######################################################################################################################
+
+
 @app.route('/ligands/<int:lig_id>')
 def ligand_detail(lig_id):
     ligand = Ligand.query.get_or_404(lig_id)
-    similar_aggregators = list(get_similar_molecules(Aggregator, ligand.structure, limit=6))
+    similar_aggregators = list(get_similar_molecules(Aggregator, ligand.structure, cutoff=0.7, limit=6))
     return render_template('ligands/detail.html',
                            ligand=ligand,
                            similar_aggregators=similar_aggregators)
+
+
+@app.route('/ligands/<int:lig_id>.png')
+def ligand_image(lig_id, format='png'):
+    compound = Ligand.query.get_or_404(lig_id)
+    return draw(compound.mol, format=format)
 
 
 @app.route('/ligands/', defaults={'page': 1})
@@ -135,7 +144,7 @@ def ligand_list(page=1):
     query = Ligand.query
     sorting = Ligand.id
     if 'name' in request.args:
-        query = query.filter(func.lower(Ligand.refcode).contains(request.args['name'].lower()))
+        query = query.filter(func.lower(Ligand.refcode).startswith(request.args['name'].lower()))
         sorting = Ligand.refcode
     if request.args.get('format') == 'json':
         suggestions = [lig.refcode for lig in query.limit(20)]
@@ -156,6 +165,9 @@ def ligands_similar_to(page=1):
         return render_template('ligands/similar-list.html',
                                molecules=pagination,
                                page_query_args=request.args)
+
+
+#######################################################################################################################
 
 
 @app.route('/sources', defaults={'page_num': 1})

@@ -3,12 +3,9 @@ from __future__ import absolute_import
 import contextlib
 from cStringIO import StringIO
 
-from rdkit.Chem import (
-    MolFromSmiles,
-    MolFromSmarts,
-)
-from rdkit.Chem.inchi import MolFromInchi
-from rdkit.Chem.Draw import MolToImage
+from rdkit import Chem as C
+from rdkit.Chem import inchi as Ci
+from rdkit.Chem import Draw as CD
 
 from rdalchemy.rdalchemy import tanimoto_threshold
 from flask import(
@@ -41,18 +38,20 @@ IMAGE_FORMAT_MIME_TYPES = {
 SEARCH_INPUT_FORMATS = [
     ('aggregator', mol_from_agg_id),
     ('ligand', mol_from_lig_id),
-    ('smiles', MolFromSmiles),
-    ('smarts', MolFromSmarts),
-    ('inchi', MolFromInchi),
+    ('smiles', C.MolFromSmiles),
+    ('smarts', C.MolFromSmarts),
+    ('inchi', Ci.MolFromInchi),
+    ('sdf', C.MolFromMolBlock),
+    ('mol2', C.MolFromMol2Block),
+    ('pdb', C.MolFromPDBBlock),
 ]
-
 
 
 def draw(mol, format='png'):
     if format not in IMAGE_FORMAT_MIME_TYPES:
         abort(404)
     image_size = app.config.get('MOLECULE_DISPLAY_IMAGE_SIZE', (200,200))
-    image = MolToImage(mol, size=image_size)
+    image = CD.MolToImage(mol, size=image_size)
     image_data = image_to_buffer(image, format)
     mime_type = IMAGE_FORMAT_MIME_TYPES.get(format)
 
@@ -76,7 +75,7 @@ def image_to_buffer(image, format='PNG'):
     return buf
 
 
-def extract_query_mol(params, formats, onerror_fail=True):
+def extract_query_mol(params, formats=SEARCH_INPUT_FORMATS, onerror_fail=True):
     mol, error = None, None
     for input_format, parser in formats:
         try:

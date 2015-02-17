@@ -39,10 +39,23 @@
             {%- endif %}
         </div>
         <div class="aggregator-reports panel panel-default row">
-            <div class="panel-heading">
+            <div class="panel-heading clearfix">
+                <a href="{{ url_for('.ligands_similar_to', aggregator=aggregator.id) }}"
+                   class="btn btn-default pull-right"
+                   aria-label="Find Similar Ligands"
+                   title="Find more similar ligands">
+                    <span class="glyphicon glyphicon-search"></span>
+                    Find More
+                </a>
                 <h3 class="panel-title">Similar Ligands</h3>
             </div>
-            {% if similar_ligands | count > 0 %}
+            {% if not similar_ligands %}
+            <div class="alert alert-info clearfix" role="alert">
+                Identification of similar ligands deferred. Please
+                <a href="{{ url_for('.ligands_similar_to', aggregator=aggregator.id) }}"
+                   title="Find similar ligands">run a search</a> to view ligands similar to this aggregator.
+            </div>
+            {% elif similar_ligands | count > 0 %}
             <div class="row">
                 <div class="col-sm-12">
                 {% for ligand_row in similar_ligands | batch(None) %}

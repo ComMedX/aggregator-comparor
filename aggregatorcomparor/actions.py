@@ -14,9 +14,9 @@ def init_db():
 
 
 def wipe_all_data(yes_really=False):
+    models.AggregatorReport.query.delete()
     models.Citation.query.delete()
     models.Aggregator.query.delete()
-    models.AggregatorReport.query.delete()
     models.Ligand.query.delete()
     if yes_really == 'yes':
         db.session.commit()

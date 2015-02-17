@@ -14,7 +14,7 @@ ADMINS = {
 WTF_CSRF_ENABLED = True
 SECRET_KEY = 'Shhh! This is a super secret key'
 
-DOI_URL_TPL = u"http://dx.doi.org/{0.doi!s}"
+DOI_URL_TPL = u"http://dx.doi.org/{0.doi}"
 LIGAND_SOURCE_NAME = "CSD"
 LIGAND_SOURCE_URL_TPL = u"https://summary.ccdc.cam.ac.uk/structure-summary?refcode={0.refcode!s}"
 

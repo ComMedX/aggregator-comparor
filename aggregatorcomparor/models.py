@@ -205,7 +205,7 @@ class Citation(Model):
     @property
     def doi_url(self):
         tpl = unicode(current_app.config.get("DOI_URL_TPL", u"http://dx.doi.org/{0.doi}"))
-        return tpl.format(self.doi)
+        return tpl.format(self)
 
     def __repr__(self):
         return "<Citation(id={0.id!r} doi={0.doi!r}, authors={0.authors!r}, year={0.year!r})".format(self)
