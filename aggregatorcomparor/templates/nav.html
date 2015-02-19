@@ -17,9 +17,11 @@
   <!-- Collect the nav links, forms, and other content for toggling -->
   <div class="collapse navbar-collapse navbar-ex1-collapse">
     <ul class="nav navbar-nav">
-      <li><a href="{{ url_for('.index') }}">Home</a></li>
-      <li><a href="{{ url_for('.aggregator_list') }}">Aggregators</a></li>
-        <li><a href="{{ url_for('.ligand_list') }}">Ligands</a></li>
+      <li class="{{ request.endpoint == 'index' and 'active' }}"><a href="{{ url_for('.index') }}">Home</a></li>
+      <li class="{{ request.endpoint.startswith('aggregator_') and 'active' or '' }}">
+          <a href="{{ url_for('.aggregator_list') }}">Aggregators</a></li>
+      <li class="{{ request.endpoint.startswith('ligand_') and 'active' or '' }}">
+          <a href="{{ url_for('.ligand_list') }}">Ligands</a></li>
     </ul>
   </div><!-- /.navbar-collapse -->
   </div><!-- /.container -->

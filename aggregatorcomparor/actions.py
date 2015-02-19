@@ -85,7 +85,7 @@ def load_ligands(smiles, verbose=False):
                         continue
                     else:
                         if compound.mol is None:
-                            print("\nIgnoring compound #{0:d} because structure is invalid".format(idx, e))
+                            print("\nIgnoring compound #{0:d} because structure is invalid ({1!s}".format(idx, e))
                             continue
                         else:
                             db.session.add(compound)

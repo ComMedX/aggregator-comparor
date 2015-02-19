@@ -23,9 +23,12 @@ from .core import (
     db,
 )
 from .models import (
+    MoleculeMixin,
     coerse_to_mol,
     mol_from_agg_id,
     mol_from_lig_id,
+    Aggregator,
+    Ligand,
 )
 
 
@@ -34,6 +37,13 @@ IMAGE_FORMAT_MIME_TYPES = {
     'png': 'image/png',
     'gif': 'image/gif',
 }
+
+DOWNLOAD_FORMAT_MIMETYPES = {
+    'smi': 'chemical/x-daylight-smiles',
+    'sdf': 'chemical/x-mdl-sdfile',
+    'pdb': 'chemical/x-pdb',
+}
+
 
 SEARCH_INPUT_FORMATS = [
     ('aggregator', mol_from_agg_id),
@@ -47,7 +57,73 @@ SEARCH_INPUT_FORMATS = [
 ]
 
 
-def draw(mol, format='png'):
+DOWNLOAD_FORMAT_WRITERS = {
+    'smi': lambda mol: mol_to_smiles_line(mol),
+    'inchi': Ci.MolToInchi,
+    'sdf': C.MolToMolBlock,
+    'pdb': C.MolToPDBBlock,
+}
+
+
+IMAGE_URL_ENDPOINTS = {
+    Aggregator: ('aggregator_image', 'agg_id', 'id'),
+    Ligand: ('ligand_image', 'lig_id', 'id'),
+}
+
+
+def get_mol_name(mol, default=None):
+    if mol.HasProp('_Name'):
+        return mol.GetProp('_Name')
+    else:
+        return default
+
+
+def image_url_for(obj):
+    cls = type(obj)
+    try:
+        endpoint, param, attr = IMAGE_URL_ENDPOINTS[cls]
+    except KeyError:
+        return None
+    else:
+        params = {}
+        params[param] = getattr(obj, attr)
+        return url_for(endpoint, **params)
+
+
+def mol_to_smiles_line(mol):
+    name = get_mol_name(mol, default='')
+    return '{0} {1}'.format(C.MolToSmiles(mol, isomericSmiles=True), name)
+
+
+def represent_mol(mol, format):
+    if format in IMAGE_FORMAT_MIME_TYPES:
+        return draw_mol(mol, format)
+    elif format in DOWNLOAD_FORMAT_MIMETYPES:
+        return download_mol(mol, format)
+    else:
+        abort(404)
+
+
+def download_mol(mol, format):
+    format = format.lower()
+    try:
+        writer = DOWNLOAD_FORMAT_WRITERS[format]
+        mimetype = DOWNLOAD_FORMAT_MIMETYPES[format]
+    except KeyError:
+        abort(404)
+    buffer = StringIO()
+    buffer.write(writer(mol))
+    buffer.seek(0)
+    mol_name = get_mol_name(mol)
+    options = {}
+    if mol_name:
+        options.update(as_attachment=True,
+                       attachment_filename="{0}.{1}".format(mol_name, format.lower()))
+    return send_file(buffer, mimetype,**options)
+
+
+def draw_mol(mol, format='png'):
+    format = format.lower()
     if format not in IMAGE_FORMAT_MIME_TYPES:
         abort(404)
     image_size = app.config.get('MOLECULE_DISPLAY_IMAGE_SIZE', (200,200))
@@ -102,8 +178,8 @@ def extract_query_mol(params, formats=SEARCH_INPUT_FORMATS, onerror_fail=True):
 def get_similarity_parameters(this_request, onerror_fail=True, **kwargs):
     default_search_cutoff = app.config.get('MOLECULE_SEARCH_TANIMOTO_CUTOFF', 0.50)
     default_result_limit = app.config.get('MOLECULE_SEARCH_RESULT_LIMIT', None)
-    search_cutoff = float(this_request.args.get('similarity_threshold', default_search_cutoff))
-    result_limit = this_request.args.get('max_results', default_result_limit)
+    search_cutoff = float(this_request.args.get('cutoff', default_search_cutoff))
+    result_limit = this_request.args.get('count', default_result_limit)
     query_structure, query_input, error = extract_query_mol(this_request.args, SEARCH_INPUT_FORMATS)
 
     if result_limit is not None:
@@ -140,7 +216,7 @@ def run_similar_molecules_query(result_type, params):
     haystack_fps = result_type.structure.rdkit_fp  # Comparable fingerprint property
 
     # Construct structural query sorted and limited by similarity with tanimoto scores annotated
-    similar = haystack.filter(haystack_fps.similar_to(needle_fp))  # Restrict to molecules with high Tc
+    similar = haystack.filter(haystack_fps.tanimoto_similar(needle_fp))  # Restrict to molecules with high Tc
     similar = similar.order_by(haystack_fps.tanimoto_nearest_neighbors(needle_fp))  # Put highest Tc's first
     similar = similar.add_columns(needle_fp.tanimoto(haystack_fps))  # Annotate results with Tc
 
@@ -149,10 +225,8 @@ def run_similar_molecules_query(result_type, params):
 
     # Run query with specified tanimoto threshold
     if 'cutoff' in params:
-        with tanimoto_threshold(db.engine, params['cutoff']):
-            yield similar
-    else:
-        yield similar
+        similar = similar.with_transformation(tanimoto_threshold.set_in_session(params['cutoff']))
+    yield similar
 
 
 

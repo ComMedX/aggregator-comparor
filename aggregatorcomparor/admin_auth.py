@@ -82,7 +82,7 @@ class AuthenticatedAdminIndexView(admin.AdminIndexView):
         # handle user login
         form = AdministratorLoginForm(request.form)
         if admin.helpers.validate_form_on_submit(form):
-            user = form.get_specified_user()
+            user = form.get_specified_user
             login.login_user(user, remember=True)
 
         if login.current_user.is_authenticated():

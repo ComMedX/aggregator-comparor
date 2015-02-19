@@ -56,9 +56,10 @@
                       <span class="caret"></span>
                   </button>
                   <ul class="dropdown-menu pull-right" role="menu">
-                      <li><a href="#">SMILES</a></li>
-                      <li><a href="#">MOL2</a></li>
-                      <li><a href="#">SDF</a></li>
+                      <li><a href="{{ url_for('.ligand_represent', lig_id=ligand.id, format='smi') }}">SMILES</a></li>
+                      <li><a href="{{ url_for('.ligand_represent', lig_id=ligand.id, format='inchi') }}">InChI</a></li>
+                      <li><a href="{{ url_for('.ligand_represent', lig_id=ligand.id, format='pdb') }}">PDB</a></li>
+                      <li><a href="{{ url_for('.ligand_represent', lig_id=ligand.id, format='sdf') }}">SDF</a></li>
                   </ul>
                 </div>
             </td>

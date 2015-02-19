@@ -57,8 +57,8 @@
   {% if lookup %}
       <form class="form-horizontal" class="name-lookup" action="{{ lookup }}" method="GET">
           <div class="form-group">
-            <label for="lookup" class="col-sm-2">Name</label>
-              <div class="col-sm-10">
+            <label for="lookup" class="col-sm-2 sr-only">Name</label>
+              <div class="col-sm-12">
                 <input type="text" class="form-control name-lookup" id="lookup-{{ label }}" name="name" placeholder="By Name">
               </div>
           </div>
@@ -73,8 +73,8 @@
   {% if search %}
       <form class="form-horizontal smiles-search" action="{{ search }}" method="GET">
           <div class="form-group">
-            <label for="smiles" class="col-sm-2">SMILES</label>
-              <div class="col-sm-10">
+            <label for="smiles" class="col-sm-2 sr-only">SMILES</label>
+              <div class="col-sm-12">
                 <input type="text" class="form-control smiles-search" id="smiles-{{ label }}" name="smiles" placeholder="By SMILES">
               </div>
           </div>

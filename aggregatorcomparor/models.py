@@ -27,6 +27,7 @@ relationship = db.relationship
 
 
 class MoleculeMixin(object):
+    NAME_ATTRIBUTE = None
     structure = Column('smiles', Mol, nullable=False)
 
     @declared_attr
@@ -53,7 +54,9 @@ class MoleculeMixin(object):
             kwargs['structure'] = coerse_to_mol(raw_structure)
         return kwargs
 
-    def _smiles_line(self, name='', delimiter=' '):
+    def smiles_line(self, name=None, delimiter=' '):
+        if name is None and self.NAME_ATTRIBUTE:
+            name = getattr(self, self.NAME_ATTRIBUTE)
         return u"{0}{1}{2}".format(self.smiles, delimiter, name).strip()
 
     @declared_attr
@@ -100,7 +103,11 @@ class MoleculeMixin(object):
 
     @hybrid_property
     def mol(self):
-        return self.structure.as_mol
+        mol = self.structure.as_mol
+        if self.NAME_ATTRIBUTE:
+            name = str(getattr(self, self.NAME_ATTRIBUTE))
+            mol.SetProp('_Name', name)
+        return mol
 
     @mol.comparator
     def mol(cls):
@@ -147,6 +154,8 @@ class Aggregator(MoleculeMixin, Model):
     structure = Column('smiles', Mol, nullable=False)
     added = Column('added', DateTime, default=dt.datetime.now, server_default=text('NOW()'), nullable=False)
 
+    NAME_ATTRIBUTE = 'name'
+
     def __init__(self, **kwargs):
         raw_structure = kwargs.pop('smiles', kwargs.get('structure'))
         if raw_structure is not None:
@@ -157,7 +166,7 @@ class Aggregator(MoleculeMixin, Model):
         return "<Aggregator(id={0.id!r}, mame={0.name!r}, smiles={0.smiles!r})>".format(self)
 
     def __unicode__(self):
-        return self._smiles_line(self.name)
+        return self.smiles_line(self.name)
 
     def __str__(self):
         return str(unicode(self))
@@ -211,10 +220,10 @@ class Citation(Model):
         return "<Citation(id={0.id!r} doi={0.doi!r}, authors={0.authors!r}, year={0.year!r})".format(self)
 
     def __unicode__(self):
-        return unicode(self.short_reference)
+        return unicode(self.original_reference)
 
     def __str__(self):
-        return str(self.short_reference)
+        return str(self.original_reference)
 
 
 class AggregatorReport(Model):
@@ -239,12 +248,17 @@ class AggregatorReport(Model):
 
 
 class Ligand(MoleculeMixin, Model):
+
+    # TODO: Add lookup in ZINC API
+
     __tablename__ = 'csdcompound'
 
     id = Column('id', Integer, primary_key=True)
     refcode = Column('refcode', String, nullable=False)
     serial = Column('serial', Integer, nullable=True)
     structure = Column('smiles', Mol, nullable=True)  # Null can mean failure
+
+    NAME_ATTRIBUTE = 'name'
 
     def _normalize_kwargs_name(self, kwargs):
         name = kwargs.pop('name', None)
@@ -277,7 +291,11 @@ class Ligand(MoleculeMixin, Model):
 
     @hybrid_property
     def name(self):
-        return u"{0.refcode}.{0.serial:d}".format(self)
+        if self.serial:
+            return u"{0.refcode}.{0.serial:d}".format(self)
+        else:
+            return u"{0.refcode}".format(self)
+
 
     @name.comparator
     def name(cls):
@@ -288,7 +306,7 @@ class Ligand(MoleculeMixin, Model):
             self)
 
     def __unicode__(self):
-        return self._smiles_line(self.name)
+        return self.smiles_line(self.name)
 
     def __str__(self):
         return str(unicode(self))

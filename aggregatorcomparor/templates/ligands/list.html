@@ -4,7 +4,7 @@
 {% block content_class %}container-fluid{% endblock %}
 {% block content %}
 <div class="body-content">
-    {{ render_navigation(molecules, url_for('.ligand_list'), url_for('.ligands_similar_to')) }}
+    {{ render_navigation(molecules, url_for('.ligand_list'), url_for('.ligand_list_similar_to')) }}
     <div class="row">
         <div class="col-sm-12">
         {% for ligand_row in molecules.items | batch(None) %}
@@ -18,6 +18,6 @@
         {% endfor %}
         </div>
     </div>
-    {{ render_navigation(molecules, url_for('.ligand_list'), url_for('.ligands_similar_to')) }}
+    {{ render_navigation(molecules, url_for('.ligand_list'), url_for('.ligand_list_similar_to')) }}
 </div>
 {% endblock %}

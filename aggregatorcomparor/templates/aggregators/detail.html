@@ -40,7 +40,7 @@
         </div>
         <div class="aggregator-reports panel panel-default row">
             <div class="panel-heading clearfix">
-                <a href="{{ url_for('.ligands_similar_to', aggregator=aggregator.id) }}"
+                <a href="{{ url_for('.ligand_list_similar_to', aggregator=aggregator.id) }}"
                    class="btn btn-default pull-right"
                    aria-label="Find Similar Ligands"
                    title="Find more similar ligands">
@@ -52,7 +52,7 @@
             {% if not similar_ligands %}
             <div class="alert alert-info clearfix" role="alert">
                 Identification of similar ligands deferred. Please
-                <a href="{{ url_for('.ligands_similar_to', aggregator=aggregator.id) }}"
+                <a href="{{ url_for('.ligand_list_similar_to', aggregator=aggregator.id) }}"
                    title="Find similar ligands">run a search</a> to view ligands similar to this aggregator.
             </div>
             {% elif similar_ligands | count > 0 %}

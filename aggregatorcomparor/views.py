@@ -18,12 +18,11 @@ from .models import (
 )
 from .helpers import (
     annotate_tanimoto_similarity,
-    draw,
+    represent_mol,
     extract_query_mol,
     get_molecules_for_view,
     get_similarity_parameters,
     get_similar_molecules,
-    SEARCH_INPUT_FORMATS,
     run_similar_molecules_query,
 )
 
@@ -84,10 +83,14 @@ def aggregator_detail(agg_id):
 
 
 @app.route('/aggregators/<int:agg_id>.png')
-def aggregator_image(agg_id, format='png'):
-    aggregator = Aggregator.query.get_or_404(agg_id)
-    return draw(aggregator.mol, format=format)
+def aggregator_image(agg_id):
+    return aggregator_represent(agg_id, format='png')
 
+
+@app.route('/aggregators/<int:agg_id>.<format>')
+def aggregator_represent(agg_id, format):
+    aggregator = Aggregator.query.get_or_404(agg_id)
+    return represent_mol(aggregator.mol, format=format)
 
 
 @app.route('/aggregators/', defaults={'page': 1})
@@ -108,7 +111,7 @@ def aggregator_list(page=1):
 
 @app.route('/aggregators/similar', defaults={'page': 1})
 @app.route('/aggregators/similar/page:<int:page>')
-def aggregators_similar_to(page=1):
+def aggregator_list_similar_to(page=1):
     params = get_similarity_parameters(this_request=request)
     if page == 0:
         del params['limit']
@@ -126,16 +129,21 @@ def aggregators_similar_to(page=1):
 @app.route('/ligands/<int:lig_id>')
 def ligand_detail(lig_id):
     ligand = Ligand.query.get_or_404(lig_id)
-    similar_aggregators = list(get_similar_molecules(Aggregator, ligand.structure, cutoff=0.7, limit=6))
+    similar_aggregators = list(get_similar_molecules(Aggregator, ligand.structure, cutoff=0.5, limit=6))
     return render_template('ligands/detail.html',
                            ligand=ligand,
                            similar_aggregators=similar_aggregators)
 
 
+@app.route('/ligands/<int:lig_id>.<format>')
+def ligand_represent(lig_id, format):
+    ligand = Ligand.query.get_or_404(lig_id)
+    return represent_mol(ligand.mol, format=format)
+
+
 @app.route('/ligands/<int:lig_id>.png')
-def ligand_image(lig_id, format='png'):
-    compound = Ligand.query.get_or_404(lig_id)
-    return draw(compound.mol, format=format)
+def ligand_image(lig_id):
+    return ligand_represent(lig_id, format='png')
 
 
 @app.route('/ligands/', defaults={'page': 1})
@@ -155,7 +163,7 @@ def ligand_list(page=1):
 
 @app.route('/ligands/similar', defaults={'page': 1})
 @app.route('/ligands/similar/page:<int:page>')
-def ligands_similar_to(page=1):
+def ligand_list_similar_to(page=1):
     params = get_similarity_parameters(this_request=request)
     if page == 0:
         del params['limit']
