@@ -1,6 +1,7 @@
 
 from rdalchemy.rdalchemy import tanimoto_threshold
 from flask import(
+    abort,
     json,
     render_template,
     request,
@@ -17,7 +18,9 @@ from .models import (
     coerse_to_mol,
 )
 from .helpers import (
+    aggregator_report,
     annotate_tanimoto_similarity,
+    draw_mol,
     represent_mol,
     extract_query_mol,
     get_molecules_for_view,
@@ -33,42 +36,27 @@ def index():
     return render_template('home.html', request=request)
 
 
-
 @app.route('/aggregator-status')
-def search():
+def aggregator_report():
+    query_structure, query_input, error = extract_query_mol(request.args)
+    report = aggregator_report(query_structure)
+    return render_template('aggregators/report.html', **report)
 
 
-    # Split out aggregators and Tc scores
-    try:
-        similar_aggregators, aggregator_tcs = zip(*nearest_tc)
-    except ValueError:
-        similar_aggregators, aggregator_tcs = [],[]
-    aggregator_tcs = [round(tc, 2) for tc in aggregator_tcs]
-    max_tc = max(aggregator_tcs + [0])  # Add dummy score in event none found
-    num_similar = len(similar_aggregators)
-
-    # Determine aggregator summary 
-    if max_tc == 1.0:
-        summary = "known" 
-    if num_similar > 0 and query_logp > 3:
-        summary = "likely"
-    elif num_similar > 0:
-        summary = "maybe"
-    elif query_logp > 3:
-        summary = "maybe"
-    else:
-        summary = "unlikely (but test anyways)"
-
-    report = {
-        'summary': summary,
-        'logp': query_logp,
-        'maxtc': max_tc,
-        'num_similar': num_similar,
-        'similar_smiles': [aggregator.smiles for aggregator in similar_aggregators],
-    }
-
+@app.route('/aggregator-status.json')
+def aggregator_report_json():
+    query_structure, query_input, error = extract_query_mol(request.args)
+    report = aggregator_report(query_structure)
     return json.jsonify(**report)
 
+
+@app.route('/draw')
+def draw():
+    structure, _input, _error = extract_query_mol(request.args)
+    if _error is not None:
+        abort(400)
+    else:
+        return draw_mol(structure, format='png')
 
 ######################################################################################################################
 

@@ -10,6 +10,7 @@ from rdkit.Chem import Draw as CD
 from rdalchemy.rdalchemy import tanimoto_threshold
 from flask import(
     abort,
+    current_app,
     json,
     render_template,
     request,
@@ -18,10 +19,6 @@ from flask import(
 )
 
 
-from .core import (
-    app,
-    db,
-)
 from .models import (
     MoleculeMixin,
     coerse_to_mol,
@@ -126,7 +123,7 @@ def draw_mol(mol, format='png'):
     format = format.lower()
     if format not in IMAGE_FORMAT_MIME_TYPES:
         abort(404)
-    image_size = app.config.get('MOLECULE_DISPLAY_IMAGE_SIZE', (200,200))
+    image_size = current_app.config.get('MOLECULE_DISPLAY_IMAGE_SIZE', (200,200))
     image = CD.MolToImage(mol, size=image_size)
     image_data = image_to_buffer(image, format)
     mime_type = IMAGE_FORMAT_MIME_TYPES.get(format)
@@ -134,7 +131,8 @@ def draw_mol(mol, format='png'):
     return send_file(image_data, mime_type)
 
 
-def get_molecules_for_view(molecules, page_num, sorting=None, config=app.config):
+def get_molecules_for_view(molecules, page_num, sorting=None, config=None):
+    config = config or current_app.config
     per_page = config.get('MOLECULES_DISPLAY_PER_PAGE', 30)
     if sorting:
         ordered = molecules.order_by(sorting)
@@ -176,8 +174,8 @@ def extract_query_mol(params, formats=SEARCH_INPUT_FORMATS, onerror_fail=True):
 
 
 def get_similarity_parameters(this_request, onerror_fail=True, **kwargs):
-    default_search_cutoff = app.config.get('MOLECULE_SEARCH_TANIMOTO_CUTOFF', 0.50)
-    default_result_limit = app.config.get('MOLECULE_SEARCH_RESULT_LIMIT', None)
+    default_search_cutoff = current_app.config.get('MOLECULE_SEARCH_TANIMOTO_CUTOFF', 0.50)
+    default_result_limit = current_app.config.get('MOLECULE_SEARCH_RESULT_LIMIT', None)
     search_cutoff = float(this_request.args.get('cutoff', default_search_cutoff))
     result_limit = this_request.args.get('count', default_result_limit)
     query_structure, query_input, error = extract_query_mol(this_request.args, SEARCH_INPUT_FORMATS)
@@ -231,8 +229,8 @@ def run_similar_molecules_query(result_type, params):
 
 
 def get_similar_molecules(result_type, query_structure=None, **params):
-    params.setdefault('cutoff', app.config.get('MOLECULE_SEARCH_TANIMOTO_CUTOFF', 0.50))
-    params.setdefault('limit', app.config.get('MOLECULE_SEARCH_RESULT_LIMIT', 10))
+    params.setdefault('cutoff', current_app.config.get('MOLECULE_SEARCH_TANIMOTO_CUTOFF', 0.50))
+    params.setdefault('limit', current_app.config.get('MOLECULE_SEARCH_RESULT_LIMIT', 10))
     if query_structure is not None:
         params.setdefault('mol', query_structure)
     if 'mol' in params:
@@ -247,3 +245,41 @@ def annotate_tanimoto_similarity(molecules_with_tc, attribute='tanimoto_similari
         setattr(molecule, attribute, tc)
         setattr(molecule, attribute+'_percentage', int(100 * tc))
         yield  molecule
+
+
+def aggregator_report(structure):
+    similarity_cutoff = current_app.config.get('AGGREGATOR_SIMILARITY_TANIMOTO_CUTOFF', 0.7)
+    logp_cutoff = current_app.config.get('AGGREGATOR_LOGP_CUTOFF', 3)
+
+    query_mol = coerse_to_mol(structure)
+    query_logp = query_mol.logp
+
+    similar_aggregators = get_similar_molecules(Aggregator,
+                                                mol=query_mol,
+                                                cutoff=similarity_cutoff,
+                                                limit=None)
+    similar_aggregators = list(similar_aggregators)
+    aggregator_tcs = [round(agg.tanimoto_similarity, 2) for agg in similar_aggregators]
+
+    max_tc = max(aggregator_tcs + [0])
+    num_similar = len(similar_aggregators)
+    has_similar_aggregators = num_similar > 0
+    high_logp = query_logp >= logp_cutoff
+
+    if max_tc == 1.0:
+        status = "known"
+    elif has_similar_aggregators and high_logp:
+        status = "likely"
+    elif has_similar_aggregators or high_logp:
+        status = "maybe"
+    else:
+        status = "requires testing"
+
+    return {
+        'query': query_mol,
+        'status': status,
+        'similar': similar_aggregators,
+        'num_similar': num_similar,
+        'logp': query_logp,
+        'max_tc': max_tc,
+    }
